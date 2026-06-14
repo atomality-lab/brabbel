@@ -1,4 +1,4 @@
-# Brabbel v5.40 – App-Icon / PWA-Feinschliff
+# Brabbel v5.41 – Zu zweit / Tablet weitergeben
 
 ## Start
 1. ZIP entpacken.
@@ -421,4 +421,16 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 - `apple-touch-icon.png` für iPad/iPhone ergänzt.
 - `index.html` verweist auf das Apple-Touch-Icon.
 - Service-Worker-Cache auf `brabbel-v5.40-app-icon` erhöht und Icon-Dateien in den Cache aufgenommen.
+
+
+
+## Neu in v5.41
+
+- Spielmodus „Zu zweit · Tablet weitergeben“ aktiviert.
+- Zwei Spielernamen im Menü „Neues Spiel“ ergänzt. Spieler 1 wird mit dem Hauptnamen vorausgefüllt; Duell-Namen werden separat gespeichert.
+- Zwei getrennte Handsteine, zwei Punktestände und getrennte Statistiken für den Zu-zweit-Modus.
+- Gemeinsames Brett und gemeinsamer Buchstabenbeutel im klassischen Modus.
+- Übergabebildschirm nach Zug und Passe, damit die nächste Hand verborgen bleibt.
+- Autosave und manuelle Speicherstände unterstützen den Zu-zweit-Modus.
+- Spielende-Zusammenfassung und Bestenliste zeigen Duell-Ergebnisse.
 

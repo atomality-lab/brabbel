@@ -187,7 +187,9 @@ const K = {
   animations: "wortwandler_animations_enabled_v44",
   twoFingerCommit: "wortwandler_two_finger_commit_v518",
   infoPanelCollapsed: "wortwandler_info_panel_collapsed_v518",
-  autosave: "brabbel_autosave_v529"
+  autosave: "brabbel_autosave_v529",
+  duelPlayer1: "wortwandler_duel_player1_v541",
+  duelPlayer2: "wortwandler_duel_player2_v541"
 };
 
 let state = null;
@@ -259,6 +261,152 @@ function updateMenu() {
   $("helloLine").textContent = `Hallo ${p}. Bereit für eine Runde Brabbel?`;
 }
 
+
+function isDuelGame(gameState=state) {
+  return !!(gameState && gameState.playMode === "duel" && Array.isArray(gameState.players));
+}
+function getCurrentPlayer(gameState=state) {
+  if (!isDuelGame(gameState)) return null;
+  const idx = clamp(Number(gameState.currentPlayerIndex) || 0, 0, gameState.players.length - 1);
+  return gameState.players[idx] || null;
+}
+function ensureDuelPlayerShape(player, fallbackName) {
+  if (!player) player = {};
+  player.name = String(player.name || fallbackName || "Spieler").trim() || fallbackName || "Spieler";
+  player.score = Number(player.score) || 0;
+  player.rack = Array.isArray(player.rack) ? player.rack.slice(0, RACK_SIZE) : [];
+  while (player.rack.length < RACK_SIZE) player.rack.push("");
+  player.stats = player.stats || createEmptyStats();
+  player.lastMove = player.lastMove || null;
+  player.turns = Number(player.turns) || 0;
+  return player;
+}
+function syncActivePlayerFromPlayers(gameState=state) {
+  if (!isDuelGame(gameState)) return;
+  gameState.players = gameState.players.map((p, i) => ensureDuelPlayerShape(p, `Spieler ${i + 1}`));
+  const player = getCurrentPlayer(gameState);
+  if (!player) return;
+  gameState.player = player.name;
+  gameState.score = Number(player.score) || 0;
+  gameState.rack = player.rack.slice(0, RACK_SIZE);
+  while (gameState.rack.length < RACK_SIZE) gameState.rack.push("");
+  gameState.stats = player.stats || createEmptyStats();
+  gameState.lastMove = player.lastMove || null;
+}
+function syncActivePlayerToPlayers(gameState=state) {
+  if (!isDuelGame(gameState)) return;
+  const player = getCurrentPlayer(gameState);
+  if (!player) return;
+  player.name = gameState.player || player.name;
+  player.score = Number(gameState.score) || 0;
+  player.rack = Array.isArray(gameState.rack) ? gameState.rack.slice(0, RACK_SIZE) : [];
+  while (player.rack.length < RACK_SIZE) player.rack.push("");
+  player.stats = gameState.stats || createEmptyStats();
+  player.lastMove = gameState.lastMove || null;
+}
+function getDuelPlayerNames() {
+  const main = localStorage.getItem(K.player) || "Spieler 1";
+  let p1 = ($("duelPlayer1Input")?.value || localStorage.getItem(K.duelPlayer1) || main || "Spieler 1").trim() || "Spieler 1";
+  let p2 = ($("duelPlayer2Input")?.value || localStorage.getItem(K.duelPlayer2) || "Spieler 2").trim() || "Spieler 2";
+  if (p1 === p2) p2 = `${p2} 2`;
+  return [p1, p2];
+}
+function saveDuelPlayerNames(names) {
+  if (!names || names.length < 2) return;
+  localStorage.setItem(K.duelPlayer1, names[0]);
+  localStorage.setItem(K.duelPlayer2, names[1]);
+}
+function prepareNewGameForm() {
+  const p1 = localStorage.getItem(K.duelPlayer1) || localStorage.getItem(K.player) || "";
+  const p2 = localStorage.getItem(K.duelPlayer2) || "";
+  if ($("duelPlayer1Input")) $("duelPlayer1Input").value = p1;
+  if ($("duelPlayer2Input")) $("duelPlayer2Input").value = p2;
+  updateNewGameUi(false);
+}
+function describePlayMode(gameState=state) {
+  return isDuelGame(gameState) ? "Zu zweit" : "Einzel";
+}
+function getDuelScoresText(gameState=state) {
+  if (!isDuelGame(gameState)) return "";
+  const copy = gameState === state ? JSON.parse(JSON.stringify(gameState)) : gameState;
+  if (gameState === state) syncActivePlayerToPlayers(copy);
+  return (copy.players || []).map(p => `${p.name || "Spieler"}: ${Number(p.score) || 0} Pkt.`).join(" · ");
+}
+function renderDuelScorePanel() {
+  const panel = $("duelScorePanel");
+  if (!panel) return;
+  if (!isDuelGame()) { panel.classList.add("hidden"); panel.innerHTML = ""; return; }
+  syncActivePlayerToPlayers();
+  panel.classList.remove("hidden");
+  const active = Number(state.currentPlayerIndex) || 0;
+  panel.innerHTML = state.players.map((p, i) => `<div class="duelScorePill ${i === active ? "active" : ""}"><strong>${escapeHtml(p.name)}</strong><span>${Number(p.score) || 0} Pkt.</span></div>`).join("");
+}
+function getTotalRackTileCount(gameState=state) {
+  if (!gameState) return 0;
+  if (isDuelGame(gameState)) {
+    return (gameState.players || []).reduce((sum, p, i) => {
+      if (gameState === state && i === Number(gameState.currentPlayerIndex || 0)) return sum + (state.rack || []).filter(Boolean).length;
+      return sum + ((p.rack || []).filter(Boolean).length);
+    }, 0);
+  }
+  return (gameState.rack || []).filter(Boolean).length;
+}
+function noteCurrentDuelTurnFinished() {
+  if (!isDuelGame()) return;
+  const player = getCurrentPlayer();
+  if (player) player.turns = (Number(player.turns) || 0) + 1;
+}
+function advanceDuelTurn() {
+  if (!isDuelGame()) return;
+  const current = Number(state.currentPlayerIndex) || 0;
+  const next = (current + 1) % state.players.length;
+  state.currentPlayerIndex = next;
+  if (next === 0) state.round += 1;
+  syncActivePlayerFromPlayers();
+}
+function renderHandoff() {
+  if (!isDuelGame()) return;
+  const next = getCurrentPlayer();
+  const handoff = state.handoff || {};
+  if ($("handoffText")) $("handoffText").textContent = `Jetzt ist ${next?.name || "der nächste Spieler"} am Zug. Bitte Tablet weitergeben und erst dann auf „Weiter“ tippen.`;
+  if ($("handoffLastMove")) {
+    const title = handoff.title || "Zug abgeschlossen";
+    const text = handoff.text || "";
+    $("handoffLastMove").innerHTML = `<strong>${escapeHtml(title)}</strong>${text ? `<pre>${escapeHtml(text)}</pre>` : ""}`;
+  }
+  if ($("handoffScores")) $("handoffScores").innerHTML = state.players.map((p, i) => `<div class="duelScorePill ${i === Number(state.currentPlayerIndex || 0) ? "active" : ""}"><strong>${escapeHtml(p.name)}</strong><span>${Number(p.score) || 0} Pkt.</span></div>`).join("");
+}
+function showHandoffScreen(title, text) {
+  if (!isDuelGame()) return;
+  state.handoff = {title, text};
+  renderHandoff();
+  showScreen("screen-handoff");
+  saveAutosave();
+}
+function continueAfterHandoff() {
+  if (!state || !isDuelGame()) { showScreen("screen-menu"); return; }
+  state.handoff = null;
+  syncActivePlayerFromPlayers();
+  selectedRackIndex = null;
+  showScreen("screen-game");
+  renderGame();
+  saveAutosave();
+}
+function getSaveDisplayName(gameState) {
+  if (isDuelGame(gameState)) return (gameState.players || []).map(p => p.name || "Spieler").join(" vs. ");
+  return gameState?.player || "Spieler";
+}
+function getSaveScoreText(gameState) {
+  if (isDuelGame(gameState)) return (gameState.players || []).map(p => `${p.name || "Spieler"}: ${Number(p.score) || 0}`).join(" · ") + " Punkte";
+  return `${gameState?.score || 0} Punkte`;
+}
+function getSaveModeText(gameState) {
+  const size = gameState?.boardSize || 9;
+  const mode = gameState?.playMode === "duel" ? "Zu zweit" : "Einzel";
+  const round = gameState?.round || 1;
+  return `${mode} · Runde ${round} · ${size}×${size}`;
+}
+
 function init() {
   localStorage.getItem(K.player) ? showScreen("screen-menu") : showScreen("screen-welcome");
   document.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => showScreen(b.dataset.go)));
@@ -266,16 +414,18 @@ function init() {
     localStorage.setItem(K.player, $("playerNameInput").value.trim() || "Spieler");
     showScreen("screen-menu");
   });
-  $("newGameMenuBtn").addEventListener("click", () => showScreen("screen-newgame"));
+  $("newGameMenuBtn").addEventListener("click", () => { prepareNewGameForm(); showScreen("screen-newgame"); });
   $("continueMenuBtn").addEventListener("click", () => showScreen("screen-slots"));
   $("leaderboardMenuBtn").addEventListener("click", () => showScreen("screen-leaderboard"));
   $("lexiconMenuBtn").addEventListener("click", () => showScreen("screen-lexicon"));
   $("settingsMenuBtn").addEventListener("click", () => showScreen("screen-settings"));
   $("exitAppBtn").addEventListener("click", exitApp);
+  $("playModeSelect").addEventListener("change", () => updateNewGameUi(false));
   $("gameModeSelect").addEventListener("change", () => updateNewGameUi(false));
   $("endModeSelect").addEventListener("change", () => updateNewGameUi(false));
   $("boardSizeSelect").addEventListener("change", () => updateNewGameUi(true));
   $("startGameBtn").addEventListener("click", startNewGame);
+  $("handoffContinueBtn")?.addEventListener("click", continueAfterHandoff);
   $("commitMoveBtn").addEventListener("click", commitMove);
   $("passBtn").addEventListener("click", passTurn);
   $("undoBtn").addEventListener("click", undoTurn);
@@ -331,7 +481,9 @@ function updateJokerCountOptions(resetToDefault=false) {
   select.value = String(next);
 }
 function updateNewGameUi(resetJokers=false) {
+  const playMode = $("playModeSelect")?.value || "solo";
   const gameMode = $("gameModeSelect").value;
+  $("duelNamesWrap")?.classList.toggle("hidden", playMode !== "duel");
   $("seedCountWrap").classList.toggle("hidden", gameMode !== "letters");
   $("specialLayoutWrap").classList.toggle("hidden", gameMode !== "special");
   $("roundLimitWrap").classList.toggle("hidden", $("endModeSelect").value !== "rounds");
@@ -428,6 +580,8 @@ function startNewGame() {
   const roundLimit = clamp(Number($("roundLimitInput").value) || 30, 10, 100);
   const specialLayoutType = mode === "special" ? getSelectedSpecialLayoutType() : "";
   const jokerCount = getSelectedJokerCount(boardSize);
+  const duelNames = playMode === "duel" ? getDuelPlayerNames() : [];
+  if (playMode === "duel") saveDuelPlayerNames(duelNames);
   state = {
     player: localStorage.getItem(K.player) || "Spieler",
     playMode, mode, boardSize, endMode, roundLimit, specialLayoutType, jokerCount,
@@ -437,13 +591,22 @@ function startNewGame() {
     specialLayoutData: null,
     stats: createEmptyStats()
   };
+  if (playMode === "duel") {
+    state.players = duelNames.map((name, i) => ensureDuelPlayerShape({name, score: 0, rack: [], stats: createEmptyStats(), lastMove: null, turns: 0}, `Spieler ${i + 1}`));
+    state.currentPlayerIndex = 0;
+  }
   if (mode === "special" && specialLayoutType === "random") state.specialLayoutData = createRandomSpecialLayout(boardSize);
   state.board = emptyBoard(boardSize);
   if (mode === "letters") {
     placeSeedLetters(clamp(Number($("seedCountInput").value) || 5, 2, 10));
     state.firstSuccessfulMove = true;
   }
-  state.rack = drawRack([], true);
+  if (isDuelGame()) {
+    state.players.forEach(player => { player.rack = drawRack([], true); });
+    syncActivePlayerFromPlayers();
+  } else {
+    state.rack = drawRack([], true);
+  }
   selectedRackIndex = null;
   showScreen("screen-game");
   renderGame();
@@ -551,7 +714,10 @@ function renderGame() {
   if (!state) return;
   $("scoreOut").textContent = state.score;
   $("roundOut").textContent = state.round;
-  $("gameSubtitle").textContent = `${describeBoardMode(state.mode)} · ${getBoardSize()}×${getBoardSize()} · ${describeEndMode()}`;
+  $("gameSubtitle").textContent = isDuelGame()
+    ? `${describePlayMode()} · Am Zug: ${state.player} · ${describeBoardMode(state.mode)} · ${getBoardSize()}×${getBoardSize()} · ${describeEndMode()}`
+    : `${describeBoardMode(state.mode)} · ${getBoardSize()}×${getBoardSize()} · ${describeEndMode()}`;
+  renderDuelScorePanel();
   const giveUpAvailable = isGiveUpAvailable();
   $("giveUpBtn")?.classList.toggle("hidden", !giveUpAvailable);
   $("bottomGameControls")?.classList.toggle("hasGiveUp", giveUpAvailable);
@@ -593,7 +759,7 @@ function renderTurnStatus() {
   const current = p.changedCells.length && getMoveStatus(p) !== "error" ? p.points : 0;
   if ($("bagStatusOut")) $("bagStatusOut").textContent = getBagStatusText();
   if ($("currentMoveOut")) $("currentMoveOut").textContent = `${current} Pkt.`;
-  if ($("totalScoreOut")) $("totalScoreOut").textContent = `${state.score} Pkt.`;
+  if ($("totalScoreOut")) $("totalScoreOut").textContent = isDuelGame() ? `${state.player}: ${state.score} Pkt.` : `${state.score} Pkt.`;
   if ($("roundStatusOut")) $("roundStatusOut").textContent = getRoundStatusText();
   applyMoveStatus(p);
 }
@@ -1400,12 +1566,24 @@ function finalizeMove(p) {
     cell.previousJoker = false;
   }
   state.firstSuccessfulMove = true;
-  state.round += 1;
+  const title = getMovePraiseTitle(p.points);
+  const text = formatMoveSuccessText(p);
   state.rack = drawRack(state.rack, false);
   selectedRackIndex = null;
+
+  if (isDuelGame()) {
+    noteCurrentDuelTurnFinished();
+    syncActivePlayerToPlayers();
+    advanceDuelTurn();
+    saveAutosave();
+    if (!checkGameEndAfterTurn()) showHandoffScreen(title, text);
+    return;
+  }
+
+  state.round += 1;
   renderGame();
   saveAutosave();
-  if (!checkGameEndAfterTurn()) message(getMovePraiseTitle(p.points), formatMoveSuccessText(p));
+  if (!checkGameEndAfterTurn()) message(title, text);
 }
 
 
@@ -1469,7 +1647,57 @@ function getGameAveragePerRound(score, rounds) {
   return rounds > 0 ? score / rounds : 0;
 }
 
+function buildDuelFinalSummary(reason) {
+  syncActivePlayerToPlayers();
+  const players = (state.players || []).map((p, i) => ensureDuelPlayerShape(p, `Spieler ${i + 1}`));
+  const rounds = getCompletedRounds();
+  const topScore = Math.max(...players.map(p => Number(p.score) || 0));
+  const winners = players.filter(p => (Number(p.score) || 0) === topScore);
+  const winnerText = winners.length === 1 ? `Gewonnen hat ${winners[0].name}.` : `Unentschieden zwischen ${winners.map(p => p.name).join(" und ")}.`;
+  const totalWords = players.reduce((sum, p) => sum + (p.stats?.totalWords || 0), 0);
+  const longestInfo = players
+    .map(p => ({player: p.name, word: p.stats?.longestWord || "", length: p.stats?.longestWordLength || 0}))
+    .sort((a,b) => b.length - a.length)[0] || {word:"", length:0, player:""};
+  const bestMoveInfo = players
+    .map(p => ({player: p.name, word: p.stats?.bestMoveWord || "", points: p.stats?.bestMovePoints || 0}))
+    .sort((a,b) => b.points - a.points)[0] || {word:"", points:0, player:""};
+  const scoreLines = players.map(p => `${p.name}: ${Number(p.score) || 0} Pkt. · ${Number(p.turns) || 0} Züge`);
+  const text = [
+    reason,
+    "",
+    "Endstand:",
+    ...scoreLines,
+    "",
+    winnerText,
+    `Runden: ${rounds}`,
+    `Gewertete Wörter: ${totalWords}`,
+    "",
+    `Längstes Wort:
+${longestInfo.word ? `${longestInfo.word} · ${longestInfo.length} Buchstaben · ${longestInfo.player}` : "–"}`,
+    "",
+    `Stärkster Zug:
+${bestMoveInfo.word ? `${bestMoveInfo.word} · ${bestMoveInfo.points} Pkt. · ${bestMoveInfo.player}` : "–"}`
+  ].join("\n");
+  return {
+    duel: true,
+    player: players.map(p => p.name).join(" vs. "),
+    score: topScore,
+    rounds,
+    averagePerRound: rounds > 0 ? Number((topScore / rounds).toFixed(1)) : 0,
+    totalWords,
+    longestWord: longestInfo.word || "",
+    longestWordLength: longestInfo.length || 0,
+    bestMoveWord: bestMoveInfo.word || "",
+    bestMovePoints: bestMoveInfo.points || 0,
+    bestSingleWord: "",
+    bestSingleWordPoints: 0,
+    duelScores: players.map(p => `${p.name}: ${Number(p.score) || 0}`).join(" · "),
+    text
+  };
+}
+
 function buildFinalSummary(reason) {
+  if (isDuelGame()) return buildDuelFinalSummary(reason);
   const score = state?.score || 0;
   const rounds = getCompletedRounds();
   const stats = state?.stats || createEmptyStats();
@@ -1486,11 +1714,14 @@ function buildFinalSummary(reason) {
     `Ø pro Runde: ${formatDecimal(average)} Pkt.`,
     `Gewertete Wörter: ${totalWords}`,
     "",
-    `Längstes Wort:\n${longest}`,
+    `Längstes Wort:
+${longest}`,
     "",
-    `Stärkster Zug:\n${bestMove}`,
+    `Stärkster Zug:
+${bestMove}`,
     "",
-    `Bestes Einzelwort:\n${bestSingle}`
+    `Bestes Einzelwort:
+${bestSingle}`
   ].join("\n");
   return {
     score, rounds, averagePerRound: Number(average.toFixed(1)), totalWords,
@@ -1520,10 +1751,16 @@ function giveUpGame() {
   if (!state) return;
   const penalty = getRackPenalty();
   const hand = state.rack.filter(Boolean).join(", ") || "keine";
-  confirmDialog("Aufgeben", `Möchtest du das Spiel jetzt aufgeben?\n\nHandsteine: ${hand}\nHandwert: ${penalty} Punkte\n\nDieser Wert wird von deinem Gesamtstand abgezogen.`, "Ja, aufgeben", () => {
+  confirmDialog("Aufgeben", `Möchtest du das Spiel jetzt aufgeben?
+
+Handsteine: ${hand}
+Handwert: ${penalty} Punkte
+
+Dieser Wert wird von deinem Gesamtstand abgezogen.`, "Ja, aufgeben", () => {
     state.score -= penalty;
     state.lastMove = {words: ["Aufgegeben"], usedLetters: state.rack.filter(Boolean), points: -penalty, date: new Date().toISOString()};
-    finishGame(`Du hast aufgegeben. Der Handwert wurde abgezogen: -${penalty} Punkte.`);
+    if (isDuelGame()) syncActivePlayerToPlayers();
+    finishGame(`${state.player || "Du"} hat aufgegeben. Der Handwert wurde abgezogen: -${penalty} Punkte.`);
   });
 }
 
@@ -1534,19 +1771,20 @@ function checkGameEndAfterTurn() {
     return true;
   }
   if (state.endMode === "classic") {
-    const hand = state.rack.filter(Boolean).length;
+    const hand = getTotalRackTileCount();
     const bag = state.bag?.length || 0;
     if (bag === 0 && hand === 0) {
-      finishGame("Der Buchstabenbeutel ist leer und du hast keine Handsteine mehr.");
+      finishGame("Der Buchstabenbeutel ist leer und es sind keine Handsteine mehr übrig.");
       return true;
     }
-    if (bag === 0) {
+    if (bag === 0 && !isDuelGame()) {
       message("Buchstabenbeutel leer", "Du kannst noch mit den vorhandenen Handsteinen weiterspielen. Wenn du nichts mehr legen kannst, nutze „Aufgeben“. Dann wird der Handwert abgezogen.");
     }
   }
   return false;
 }
 function finishGame(reason) {
+  if (isDuelGame()) syncActivePlayerToPlayers();
   const summary = buildFinalSummary(reason);
   try { addLeaderboardEntry(summary); } catch (err) { console.error("Bestenliste konnte nicht aktualisiert werden", err); }
   clearAutosave();
@@ -1580,9 +1818,19 @@ function passTurn() {
     undoTurn(true);
     if (isClassicGame()) { state.bag = shuffleArray((state.bag || []).concat(state.rack.filter(Boolean))); state.rack = drawRack([], true); }
     else state.rack = drawRack([], true);
-    state.round += 1;
     state.lastMove = {words: ["Passe"], usedLetters: [], points: 0, date: new Date().toISOString()};
     selectedRackIndex = null;
+
+    if (isDuelGame()) {
+      noteCurrentDuelTurnFinished();
+      syncActivePlayerToPlayers();
+      advanceDuelTurn();
+      saveAutosave();
+      if (!checkGameEndAfterTurn()) showHandoffScreen("Runde ausgesetzt", isClassicGame() ? "Gepasst und neue Buchstaben aus dem Beutel gezogen." : "Gepasst und 7 neue Buchstaben erhalten.");
+      return;
+    }
+
+    state.round += 1;
     renderGame();
     saveAutosave();
     if (!checkGameEndAfterTurn()) message("Runde ausgesetzt", isClassicGame() ? "Du hast gepasst und neue Buchstaben aus dem Beutel gezogen." : "Du hast gepasst und 7 neue Buchstaben erhalten.");
@@ -1600,11 +1848,11 @@ function endGame() {
   }, "Nein, zurück");
 }
 function addLeaderboardEntry(summary=null) {
-  if (!state || Number(state.score) <= 0) return;
   const finalSummary = summary || buildFinalSummary("Spiel beendet.");
+  if (!state || Number(finalSummary.score) <= 0) return;
   const list = getLeaderboard();
   list.push({
-    player: localStorage.getItem(K.player) || "Spieler",
+    player: finalSummary.player || localStorage.getItem(K.player) || "Spieler",
     score: finalSummary.score,
     rounds: finalSummary.rounds,
     averagePerRound: finalSummary.averagePerRound,
@@ -1615,8 +1863,9 @@ function addLeaderboardEntry(summary=null) {
     bestMovePoints: finalSummary.bestMovePoints,
     bestSingleWord: finalSummary.bestSingleWord,
     bestSingleWordPoints: finalSummary.bestSingleWordPoints,
+    duelScores: finalSummary.duelScores || "",
     date: new Date().toISOString(),
-    mode: `${describeBoardMode(state.mode)} · ${getBoardSize()}×${getBoardSize()} · ${state.endMode === "classic" ? "Klassisch" : state.endMode === "rounds" ? "Runden" : "Endlos"}`
+    mode: `${describePlayMode()} · ${describeBoardMode(state.mode)} · ${getBoardSize()}×${getBoardSize()} · ${state.endMode === "classic" ? "Klassisch" : state.endMode === "rounds" ? "Runden" : "Endlos"}`
   });
   list.sort((a,b) => b.score - a.score);
   localStorage.setItem(K.leaderboard, JSON.stringify(list.slice(0, 10)));
@@ -1630,7 +1879,8 @@ function renderLeaderboard() {
     const average = typeof x.averagePerRound === "number" ? ` · Ø ${formatDecimal(x.averagePerRound)}` : "";
     const longest = x.longestWord ? `Längstes Wort: ${escapeHtml(x.longestWord)}` : "Längstes Wort: –";
     const bestMove = x.bestMovePoints ? `stärkster Zug: ${escapeHtml(x.bestMoveWord || "–")} · ${x.bestMovePoints} Pkt.` : "stärkster Zug: –";
-    return `<div class="leaderRow"><strong>${i+1}. ${escapeHtml(x.player)}</strong><span>${x.score} Punkte · ${rounds} Runden${average} · ${escapeHtml(x.mode)} · ${formatDateTime(x.date)}</span><small>${longest} · ${bestMove}</small></div>`;
+    const duelScores = x.duelScores ? ` · Endstand: ${escapeHtml(x.duelScores)}` : "";
+    return `<div class="leaderRow"><strong>${i+1}. ${escapeHtml(x.player)}</strong><span>${x.score} Punkte · ${rounds} Runden${average} · ${escapeHtml(x.mode)} · ${formatDateTime(x.date)}${duelScores}</span><small>${longest} · ${bestMove}</small></div>`;
   }).join("");
 }
 function getAutosave() {
@@ -1639,6 +1889,7 @@ function getAutosave() {
 }
 function saveAutosave() {
   if (!state) return;
+  if (isDuelGame()) syncActivePlayerToPlayers();
   const copy = JSON.parse(JSON.stringify(state));
   copy.savedAt = new Date().toISOString();
   copy.autosave = true;
@@ -1650,21 +1901,22 @@ function clearAutosave() {
 function renderAutosaveCard() {
   const auto = getAutosave();
   if (!auto) return `<div class="slot autosaveSlot"><strong>Autosave</strong><span class="muted">Kein Autosave vorhanden.</span></div>`;
-  return `<div class="slot autosaveSlot"><strong>Autosave</strong><span>${escapeHtml(auto.player || "Spieler")} · ${auto.score || 0} Punkte · Runde ${auto.round || 1} · ${auto.boardSize || 9}×${auto.boardSize || 9} · ${formatDateTime(auto.savedAt)}</span><div class="slotActions"><button onclick="loadAutosave()" class="primary">Laden</button><button onclick="deleteAutosave()" class="danger">Löschen</button></div></div>`;
+  return `<div class="slot autosaveSlot"><strong>Autosave</strong><span>${escapeHtml(getSaveDisplayName(auto))} · ${escapeHtml(getSaveScoreText(auto))} · ${escapeHtml(getSaveModeText(auto))} · ${formatDateTime(auto.savedAt)}</span><div class="slotActions"><button onclick="loadAutosave()" class="primary">Laden</button><button onclick="deleteAutosave()" class="danger">Löschen</button></div></div>`;
 }
 
 function getSlots() { try { const s = JSON.parse(localStorage.getItem(K.slots) || "null"); return Array.isArray(s) ? s : [null,null,null]; } catch { return [null,null,null]; } }
 function saveSlots(s) { localStorage.setItem(K.slots, JSON.stringify(s)); }
 function renderSlots() {
   const slots = getSlots();
-  $("slotList").innerHTML = renderAutosaveCard() + slots.map((slot,i) => `<div class="slot"><strong>Spielstand ${i+1}</strong>${slot ? `<span>${escapeHtml(slot.player)} · ${slot.score} Punkte · Runde ${slot.round} · ${slot.boardSize || 9}×${slot.boardSize || 9} · ${formatDate(slot.savedAt)}</span><div class="slotActions"><button onclick="loadSlot(${i})" class="primary">Laden</button><button onclick="deleteSlot(${i})" class="danger">Löschen</button></div>` : `<span class="muted">Leer</span>`}</div>`).join("");
+  $("slotList").innerHTML = renderAutosaveCard() + slots.map((slot,i) => `<div class="slot"><strong>Spielstand ${i+1}</strong>${slot ? `<span>${escapeHtml(getSaveDisplayName(slot))} · ${escapeHtml(getSaveScoreText(slot))} · ${escapeHtml(getSaveModeText(slot))} · ${formatDate(slot.savedAt)}</span><div class="slotActions"><button onclick="loadSlot(${i})" class="primary">Laden</button><button onclick="deleteSlot(${i})" class="danger">Löschen</button></div>` : `<span class="muted">Leer</span>`}</div>`).join("");
 }
 function renderSaveSlots() {
   const slots = getSlots();
-  $("saveSlotList").innerHTML = slots.map((slot,i) => `<div class="slot"><strong>Spielstand ${i+1}</strong>${slot ? `<span>${escapeHtml(slot.player)} · ${slot.score} Punkte · Runde ${slot.round} · ${slot.boardSize || 9}×${slot.boardSize || 9} · ${formatDate(slot.savedAt)}</span><div class="slotActions"><button onclick="saveToSlot(${i})" class="primary">Hier speichern</button><button onclick="deleteSlot(${i})" class="danger">Löschen</button></div>` : `<span class="muted">Leer</span><button onclick="saveToSlot(${i})" class="primary">Hier speichern</button>`}</div>`).join("");
+  $("saveSlotList").innerHTML = slots.map((slot,i) => `<div class="slot"><strong>Spielstand ${i+1}</strong>${slot ? `<span>${escapeHtml(getSaveDisplayName(slot))} · ${escapeHtml(getSaveScoreText(slot))} · ${escapeHtml(getSaveModeText(slot))} · ${formatDate(slot.savedAt)}</span><div class="slotActions"><button onclick="saveToSlot(${i})" class="primary">Hier speichern</button><button onclick="deleteSlot(${i})" class="danger">Löschen</button></div>` : `<span class="muted">Leer</span><button onclick="saveToSlot(${i})" class="primary">Hier speichern</button>`}</div>`).join("");
 }
 window.saveToSlot = function(i) {
   const slots = getSlots();
+  if (isDuelGame()) syncActivePlayerToPlayers();
   state.savedAt = new Date().toISOString();
   slots[i] = JSON.parse(JSON.stringify(state));
   saveSlots(slots);
@@ -1676,9 +1928,10 @@ window.loadAutosave = function() {
   if (!auto) { message("Autosave", "Es ist kein Autosave vorhanden."); return; }
   state = auto;
   delete state.autosave;
+  if (isDuelGame()) syncActivePlayerFromPlayers();
   selectedRackIndex = null;
-  showScreen("screen-game");
-  renderGame();
+  if (isDuelGame() && state.handoff) { renderHandoff(); showScreen("screen-handoff"); }
+  else { showScreen("screen-game"); renderGame(); }
 };
 window.deleteAutosave = function() {
   if (!getAutosave()) return;
@@ -1692,8 +1945,9 @@ window.deleteAutosave = function() {
 window.loadSlot = function(i) {
   const slot = getSlots()[i];
   if (!slot) return;
-  state = slot; selectedRackIndex = null;
-  showScreen("screen-game"); renderGame();
+  state = slot; if (isDuelGame()) syncActivePlayerFromPlayers(); selectedRackIndex = null;
+  if (isDuelGame() && state.handoff) { renderHandoff(); showScreen("screen-handoff"); }
+  else { showScreen("screen-game"); renderGame(); }
 };
 window.deleteSlot = function(i) {
   const slots = getSlots();

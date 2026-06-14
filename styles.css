@@ -1653,3 +1653,77 @@ body.infoCollapsed .board.boardLarge .cell {
 /* v5.39 Spielmodus und Joker-Auswahl */
 #playModeSelect option:disabled{color:var(--muted)}
 #jokerCountSelect{font-weight:850}
+
+
+/* Brabbel v5.41: Zu zweit / Tablet weitergeben */
+.duelNamesWrap {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .8rem;
+  align-items: start;
+  background: rgba(255,255,255,.5);
+  border: 3px solid var(--line);
+  border-radius: 20px;
+  padding: .8rem;
+  margin: .8rem 0;
+}
+.duelNamesWrap .muted {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+.duelScorePanel,
+.duelScoreBoard {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .55rem;
+  justify-content: center;
+}
+.duelScorePill {
+  background: white;
+  border: 3px solid var(--line);
+  border-radius: 18px;
+  padding: .45rem .7rem;
+  min-width: 135px;
+  text-align: center;
+}
+.duelScorePill strong,
+.duelScorePill span {
+  display: block;
+}
+.duelScorePill strong {
+  color: var(--muted);
+  font-size: .8rem;
+}
+.duelScorePill span {
+  font-size: 1.15rem;
+  font-weight: 950;
+}
+.duelScorePill.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(0,109,119,.12);
+}
+.handoffCard {
+  max-width: 760px;
+}
+.handoffLastMove {
+  background: white;
+  border: 3px solid var(--line);
+  border-radius: 20px;
+  padding: 1rem;
+  margin: 1rem 0;
+  text-align: left;
+}
+.handoffLastMove pre {
+  white-space: pre-wrap;
+  font: inherit;
+  margin: .6rem 0 0;
+  color: var(--muted);
+}
+@media (max-width: 620px) {
+  .duelNamesWrap {
+    grid-template-columns: 1fr;
+  }
+  .duelScorePill {
+    min-width: 100%;
+  }
+}

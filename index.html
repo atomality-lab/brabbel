@@ -1,11 +1,12 @@
 <!doctype html>
-<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"><meta name="theme-color" content="#0f766e"><title>Brabbel v5.40</title><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="stylesheet" href="styles.css"></head>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"><meta name="theme-color" content="#0f766e"><title>Brabbel v5.41</title><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="stylesheet" href="styles.css"></head>
 <body><div id="app">
 <section id="screen-welcome" class="screen active"><div class="card hero"><h1>Brabbel</h1><p class="lead">Ein ruhiges Wortspiel fürs Tablet: legen, wandeln, prüfen, weiterspielen.</p><label class="biglabel">Spielername<input id="playerNameInput" maxlength="24" placeholder="Name eingeben"></label><button id="savePlayerBtn" class="primary wide">Weiter</button></div></section>
 <section id="screen-menu" class="screen"><div class="card hero"><h1>Brabbel</h1><p id="helloLine" class="lead"></p><div class="menuButtons"><button id="newGameMenuBtn" class="primary wide">Neues Spiel</button><button id="continueMenuBtn" class="wide">Spiel fortsetzen</button><button id="leaderboardMenuBtn" class="wide">Bestenliste</button><button id="lexiconMenuBtn" class="wide">Wortschatz</button>
           <button id="settingsMenuBtn" class="wide">Einstellungen</button><button data-go="screen-rules" class="wide">Spielregeln</button><button data-go="screen-about" class="wide">Über</button><button id="exitAppBtn" class="wide danger">App beenden</button></div></div></section>
 <section id="screen-newgame" class="screen"><div class="card"><h1>Neues Spiel</h1>
-<label class="biglabel">Spielmodus<select id="playModeSelect"><option value="solo" selected>Einzel</option><option value="duel" disabled>Spieler vs. Spieler · kommt später</option><option value="ai" disabled>Spieler vs. Dr. Brabbel · kommt später</option></select></label>
+<label class="biglabel">Spielmodus<select id="playModeSelect"><option value="solo" selected>Einzel</option><option value="duel">Zu zweit · Tablet weitergeben</option><option value="ai" disabled>Spieler vs. Dr. Brabbel · kommt später</option></select></label>
+<div id="duelNamesWrap" class="duelNamesWrap hidden"><label class="biglabel">Name Spieler 1<input id="duelPlayer1Input" maxlength="24" placeholder="Spieler 1"></label><label class="biglabel">Name Spieler 2<input id="duelPlayer2Input" maxlength="24" placeholder="Spieler 2"></label><p class="muted">Spieler 1 wird mit deinem Hauptnamen vorausgefüllt. Die Zu-zweit-Namen werden separat gespeichert.</p></div>
 <label class="biglabel">Brettgröße<select id="boardSizeSelect"><option value="9" selected>9 × 9 · kurzes Spiel</option><option value="11">11 × 11 · ausgewogen</option><option value="13">13 × 13 · langes Spiel</option></select></label>
 <label class="biglabel">Spielbrett<select id="gameModeSelect"><option value="empty">Leeres Brett</option><option value="letters">Mit Buchstaben</option><option value="special">Mit Sonderfeldern</option></select></label>
 <div id="specialLayoutWrap" class="biglabel hidden"><span>Sonderfeld-Muster</span><div class="layoutPickGrid"><label class="layoutPick"><input type="radio" name="specialLayout" value="x" checked><span>X-Form</span></label><label class="layoutPick"><input type="radio" name="specialLayout" value="star"><span>Stern-Form</span></label><label class="layoutPick"><input type="radio" name="specialLayout" value="concentric"><span>Konzentrisch</span></label><label class="layoutPick"><input type="radio" name="specialLayout" value="random"><span>Zufall</span></label></div></div>
@@ -67,6 +68,12 @@
 
         <h2>Ziel des Spiels</h2>
         <p>Bilde gültige Wörter auf dem Spielfeld. Je besser dein Zug, desto mehr Punkte bekommst du.</p>
+
+        <h2>Spielmodus</h2>
+        <ul>
+          <li><strong>Einzel:</strong> Du spielst allein und sammelst Punkte für die Bestenliste.</li>
+          <li><strong>Zu zweit:</strong> Zwei Menschen spielen am selben Tablet. Jeder hat eigene Handsteine und eigene Punkte. Nach jedem Zug erscheint ein Übergabebildschirm.</li>
+        </ul>
 
         <h2>Spielstart</h2>
         <ul>
@@ -130,7 +137,7 @@
     <section id="screen-about" class="screen">
       <div class="card wideCard infoPage">
         <h1>Über Brabbel</h1>
-        <div class="aboutHero"><strong>Brabbel v5.40</strong><span>Stand: 14.06.2026</span><span>Erstellt von Atomality</span></div>
+        <div class="aboutHero"><strong>Brabbel v5.41</strong><span>Stand: 14.06.2026</span><span>Erstellt von Atomality</span></div>
 
         <h2>Was ist Brabbel?</h2>
         <p>Brabbel ist ein deutschsprachiges Wortspiel fürs Tablet. Es ist als ruhiges, gut lesbares Spiel mit großen Bedienelementen gedacht.</p>
@@ -196,6 +203,16 @@
     </section>
 
 
+    <section id="screen-handoff" class="screen">
+      <div class="card hero handoffCard">
+        <h1>Tablet weitergeben</h1>
+        <p id="handoffText" class="lead"></p>
+        <div id="handoffLastMove" class="handoffLastMove"></div>
+        <div id="handoffScores" class="duelScoreBoard"></div>
+        <button id="handoffContinueBtn" type="button" class="primary wide">Weiter</button>
+      </div>
+    </section>
+
     <section id="screen-game" class="screen gameScreen">
   <main class="gameLayoutV54">
     <section class="leftGameColumn">
@@ -239,6 +256,7 @@
           <h1>Brabbel</h1>
           <p id="gameSubtitle"></p>
         </div>
+        <div id="duelScorePanel" class="duelScorePanel hidden"></div>
         <div class="topStats">
           <div><strong>Punkte</strong><span id="scoreOut">0</span></div>
           <div><strong>Runde</strong><span id="roundOut">1</span></div>
