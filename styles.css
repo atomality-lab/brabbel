@@ -1,0 +1,1650 @@
+*{box-sizing:border-box}:root{--bg:#fff9ed;--card:#fff1d2;--ink:#252018;--muted:#6f6253;--accent:#006d77;--accent2:#e29578;--center:#ffd166;--new:#bde0fe;--replaced:#cdb4db;--tile:#fffdf7;--line:#dfc99d;--danger:#9d0208}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);font-size:20px}button,input,select{font:inherit}button{min-height:58px;padding:.7rem 1rem;border-radius:16px;border:3px solid var(--line);background:white;font-weight:850;cursor:pointer;color:var(--ink)}button.primary{background:var(--accent);color:white;border-color:var(--accent)}button.danger{border-color:#e0a3a3;color:var(--danger)}button.wide{width:100%}input,select{width:100%;padding:.75rem;border-radius:15px;border:3px solid var(--line);background:white;min-height:58px}.screen{display:none;min-height:100vh;padding:1.2rem}.screen.active{display:grid;place-items:center}.gameScreen.active{display:block}.card{width:min(720px,100%);background:var(--card);border:4px solid var(--line);border-radius:28px;padding:1.4rem;box-shadow:0 5px 0 rgba(0,0,0,.08)}.hero{text-align:center}h1{margin:0 0 .4rem;font-size:clamp(2rem,7vw,4rem)}h2{margin:0 0 .7rem;font-size:1.25rem}.lead{color:var(--muted);font-size:1.25rem}.biglabel{display:grid;gap:.45rem;text-align:left;font-weight:850;margin:1rem 0}.menuButtons,.actions{display:grid;gap:.8rem;margin-top:1rem}.actions{grid-template-columns:1fr 1fr}.hidden{display:none!important}.topbar{display:flex;justify-content:space-between;gap:1rem;align-items:center;background:#f6efe2;border-bottom:4px solid var(--line);padding:1rem}.topbar h1{font-size:2rem}.topbar p{margin:0;color:var(--muted)}.topStats{display:flex;gap:.6rem}.topStats div{background:white;border:3px solid var(--line);border-radius:18px;padding:.5rem .8rem;min-width:110px}.topStats strong{display:block;color:var(--muted);font-size:.85rem}.topStats span{font-size:1.6rem;font-weight:900}.gameLayout{display:grid;grid-template-columns:minmax(420px,1fr) 360px;gap:1rem;padding:1rem;max-width:1300px;margin:0 auto}.boardWrap{display:grid;place-items:center}.board{display:grid;grid-template-columns:repeat(9,minmax(44px,1fr));gap:7px;background:#d2b47f;border:5px solid #bf9b5f;border-radius:22px;padding:10px;width:min(100%,760px)}.cell{aspect-ratio:1;min-height:52px;border-radius:13px;border:3px solid #b78f56;background:var(--tile);display:grid;place-items:center;font-size:clamp(1.1rem,3.2vw,2rem);font-weight:950;position:relative;user-select:none}.cell.center::after{content:"★";position:absolute;bottom:2px;right:6px;color:#8a5a00;font-size:.8rem}.cell.center{background:var(--center)}.cell.new{background:var(--new)}.cell.replaced{background:var(--replaced)}.cell.selectable{outline:5px solid var(--accent2)}.cell .old{position:absolute;left:5px;top:2px;font-size:.65rem;color:var(--muted);text-decoration:line-through}.sidePanel{display:grid;gap:.8rem;align-content:start}.panel{background:var(--card);border:4px solid var(--line);border-radius:22px;padding:1rem}.rack{display:flex;flex-wrap:wrap;gap:.55rem}.tile{width:62px;height:62px;border-radius:14px;display:grid;place-items:center;background:white;border:4px solid #c39b5f;font-size:1.45rem;font-weight:950}.tile.active{outline:6px solid var(--accent2)}.tile.used{opacity:.25}.preview ul{margin:.2rem 0 .7rem;padding-left:1.2rem}.preview .ok{color:#386641;font-weight:850}.preview .bad{color:#9d0208;font-weight:850}.preview .warn{color:#9a6700;font-weight:850}.muted{color:var(--muted)}.slotList,.leaderboard{display:grid;gap:.8rem}.slot,.leaderRow{background:white;border:3px solid var(--line);border-radius:18px;padding:.8rem;display:grid;gap:.4rem}.slot strong,.leaderRow strong{font-size:1.2rem}.slot button{margin-top:.4rem}dialog{border:0;border-radius:26px;padding:1.4rem;max-width:560px;font-size:1.2rem;box-shadow:0 20px 80px rgba(0,0,0,.35)}dialog::backdrop{background:rgba(0,0,0,.35)}dialog menu{display:flex;justify-content:flex-end;gap:.8rem;padding:0}@media(max-width:980px){.gameLayout{grid-template-columns:1fr}.sidePanel{grid-row:1}}@media(max-width:620px){body{font-size:18px}.screen{padding:.7rem}.topbar{flex-direction:column;align-items:stretch}.topStats{width:100%}.topStats div{flex:1}.gameLayout{padding:.6rem}.board{gap:4px;padding:6px}.cell{min-height:35px;border-radius:9px}.actions{grid-template-columns:1fr}}
+.lexiconList {
+  display: grid;
+  gap: .55rem;
+  margin-top: .8rem;
+}
+.lexiconItem {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: .6rem;
+  align-items: center;
+  background: white;
+  border: 3px solid var(--line);
+  border-radius: 16px;
+  padding: .6rem;
+}
+.lexiconItem button {
+  min-height: 44px;
+  padding: .35rem .7rem;
+}
+
+
+.lexiconStats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .8rem;
+  margin: 1rem 0;
+}
+.lexiconStats div {
+  background: white;
+  border: 3px solid var(--line);
+  border-radius: 18px;
+  padding: .8rem;
+}
+.lexiconStats strong {
+  display: block;
+  color: var(--muted);
+  font-size: .9rem;
+}
+.lexiconStats span {
+  font-size: 1.4rem;
+  font-weight: 900;
+}
+.lexiconList {
+  display: grid;
+  gap: .55rem;
+  margin-top: .8rem;
+}
+.lexiconItem {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: .6rem;
+  align-items: center;
+  background: white;
+  border: 3px solid var(--line);
+  border-radius: 16px;
+  padding: .6rem;
+}
+.lexiconItem button {
+  min-height: 44px;
+  padding: .35rem .7rem;
+}
+.fileButton {
+  min-height: 58px;
+  padding: .7rem 1rem;
+  border-radius: 16px;
+  border: 3px solid var(--line);
+  background: white;
+  font-weight: 850;
+  cursor: pointer;
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+.fileButton input {
+  display: none;
+}
+@media (max-width: 620px) {
+  .lexiconStats {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* Wortwandler v4.4 stabile CSS-Animationen */
+.tile {
+  transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+}
+.tile:not(.used) {
+  animation: safeDealTile 360ms ease-out both;
+}
+@keyframes safeDealTile {
+  from { transform: translateY(-10px) scale(.94); opacity: .15; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+.cell.new,
+.cell.replaced {
+  animation: safeCellGlow 520ms ease-out;
+}
+@keyframes safeCellGlow {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.045); box-shadow: 0 0 0 6px rgba(0, 109, 119, .14); }
+  100% { transform: scale(1); box-shadow: none; }
+}
+dialog[open] {
+  animation: safeDialogIn 180ms ease-out;
+}
+@keyframes safeDialogIn {
+  from { transform: translateY(10px) scale(.98); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+.toggleRow {
+  display: flex;
+  align-items: center;
+  gap: .8rem;
+  background: white;
+  border: 3px solid var(--line);
+  border-radius: 18px;
+  padding: .9rem;
+  font-weight: 850;
+  margin: 1rem 0;
+}
+.toggleRow input {
+  width: 30px;
+  height: 30px;
+  min-height: 30px;
+}
+body.animations-off .tile,
+body.animations-off .cell.new,
+body.animations-off .cell.replaced,
+body.animations-off dialog[open] {
+  animation: none !important;
+  transition: none !important;
+}
+
+
+/* Wortwandler v4.6 Seniorenfreundlich */
+.tile {
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+.tile:not(.used) {
+  animation: gentleDeal 420ms ease-out;
+}
+@keyframes gentleDeal {
+  from {
+    transform: translateY(-14px);
+    opacity: .35;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.tile.active {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0,0,0,.12);
+}
+
+.cell.new {
+  animation: gentleGlow 550ms ease-out;
+}
+.cell.replaced {
+  animation: gentleReplace 650ms ease-out;
+}
+
+@keyframes gentleGlow {
+  0% { transform: scale(1); }
+  40% {
+    transform: scale(1.06);
+    box-shadow: 0 0 0 6px rgba(0,109,119,.15);
+  }
+  100% { transform: scale(1); box-shadow:none; }
+}
+
+@keyframes gentleReplace {
+  0% { transform: scale(1); }
+  40% {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 7px rgba(120,80,180,.18);
+  }
+  100% { transform: scale(1); box-shadow:none; }
+}
+
+dialog[open] {
+  animation: gentleDialog 160ms ease-out;
+}
+@keyframes gentleDialog {
+  from { opacity:0; transform:translateY(8px); }
+  to { opacity:1; transform:translateY(0); }
+}
+
+.scoreDetails {
+  display: grid;
+  gap: .35rem;
+  margin: .45rem 0 .8rem;
+}
+.scoreDetails div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: .5rem;
+  background: white;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  padding: .35rem .55rem;
+}
+.scoreDetails span {
+  color: var(--muted);
+}
+.scoreDetails strong {
+  font-size: 1.05rem;
+}
+.scoreDetails .scoreTotal {
+  border-color: var(--accent);
+  background: #f1fbfb;
+}
+.scoreDetails .scoreTotal span,
+.scoreDetails .scoreTotal strong {
+  color: var(--accent);
+  font-weight: 950;
+}
+.lastMove small {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+
+/* Wortwandler v5.4 Layout: Brett oben links, Bedienung rechts */
+.gameScreen {
+  display: block;
+  background:
+    radial-gradient(circle at top left, rgba(255, 244, 216, .75), transparent 36rem),
+    var(--bg);
+}
+
+.gameLayoutV54 {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  padding: 1rem;
+  display: grid;
+  grid-template-columns: 650px 360px;
+  gap: 1rem;
+  align-items: start;
+  justify-content: center;
+}
+
+.leftGameColumn {
+  display: grid;
+  gap: .8rem;
+  align-content: start;
+  justify-items: start;
+}
+
+.leftGameColumn .board {
+  width: 650px;
+  max-width: 650px;
+  margin: 0;
+}
+
+.rackPanelV54 {
+  width: 650px;
+}
+
+.rackPanelV54 .rack {
+  justify-content: center;
+  min-height: 72px;
+}
+
+.rightGameColumn {
+  display: grid;
+  gap: .75rem;
+  align-content: start;
+}
+
+.topbarV54 {
+  position: static;
+  margin: 0;
+  padding: .85rem;
+  border: 4px solid var(--line);
+  border-radius: 22px;
+  background: #f6efe2;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: .75rem;
+}
+
+.topbarV54 h1 {
+  font-size: 1.9rem;
+  line-height: 1.05;
+}
+
+.topbarV54 .topStats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .6rem;
+}
+
+.topbarV54 .topStats div {
+  min-width: 0;
+  padding: .55rem .7rem;
+}
+
+.controlsPrimaryV54 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: .55rem;
+}
+
+.controlsPrimaryV54 button,
+.controlsSecondaryV54 button {
+  min-height: 54px;
+}
+
+.previewPanelV54,
+.lastMovePanelV54 {
+  overflow: visible;
+}
+
+.previewPanelV54 {
+  min-height: 0;
+}
+
+.lastMovePanelV54 {
+  min-height: 132px;
+}
+
+.controlsSecondaryV54 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: .55rem;
+}
+
+.previewPanelV54 .preview ul {
+  margin: .25rem 0 .55rem;
+}
+
+.previewPanelV54 .preview p {
+  margin: .25rem 0 .55rem;
+}
+
+.scoreDetails {
+  display: grid;
+  gap: .28rem;
+  margin: .45rem 0 .65rem;
+}
+
+.scoreDetails div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: .45rem;
+  background: white;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  padding: .28rem .45rem;
+}
+
+.scoreDetails span {
+  color: var(--muted);
+}
+
+.scoreDetails strong {
+  font-size: 1rem;
+}
+
+.scoreDetails .scoreTotal {
+  border-color: var(--accent);
+  background: #f1fbfb;
+}
+
+.scoreDetails .scoreTotal span,
+.scoreDetails .scoreTotal strong {
+  color: var(--accent);
+  font-weight: 950;
+}
+
+.lastMove small {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+@media (max-width: 1100px) {
+  .gameLayoutV54 {
+    grid-template-columns: minmax(420px, 1fr) 340px;
+  }
+
+  .leftGameColumn .board,
+  .rackPanelV54 {
+    width: 100%;
+  }
+}
+
+@media (max-width: 850px) {
+  .gameLayoutV54 {
+    grid-template-columns: 1fr;
+    max-width: 720px;
+  }
+
+  .leftGameColumn {
+    justify-items: center;
+  }
+
+  .rightGameColumn {
+    order: 2;
+  }
+
+  .rackPanelV54 {
+    width: 100%;
+  }
+}
+
+@media (max-width: 620px) {
+  .gameLayoutV54 {
+    padding: .6rem;
+  }
+
+  .topbarV54 .topStats {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+
+/* Wortwandler v5.5 Layout-Aufräumung */
+.controlsSecondaryV55 {
+  width: 650px;
+  max-width: 650px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .65rem;
+  margin: 0;
+}
+
+.controlsSecondaryV55 button {
+  min-height: 56px;
+}
+
+.previewPanelV54 {
+  min-height: 430px;
+}
+
+.lastMovePanelV54 {
+  min-height: 118px;
+}
+
+.rightGameColumn {
+  gap: .7rem;
+}
+
+@media (max-width: 1100px) {
+  .controlsSecondaryV55 {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 620px) {
+  .controlsSecondaryV55 {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* Wortwandler v5.6: Punktwerte auf Kacheln */
+.tile,
+.cell {
+  position: relative;
+}
+
+.tileLetter {
+  display: inline-block;
+  line-height: 1;
+}
+
+.tilePoints {
+  position: absolute;
+  right: 5px;
+  bottom: 3px;
+  font-size: .68rem;
+  font-weight: 950;
+  color: rgba(37, 32, 24, .78);
+  line-height: 1;
+  pointer-events: none;
+}
+
+.cell .tilePoints {
+  right: 6px;
+  bottom: 4px;
+  font-size: .72rem;
+}
+
+.tile .tilePoints {
+  right: 5px;
+  bottom: 4px;
+  font-size: .72rem;
+}
+
+.cell.replaced .old {
+  max-width: 70%;
+}
+
+.controlsSecondaryV55 button.danger {
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+
+/* Wortwandler v5.7: variable Brettgröße und Startauswahl */
+.startHint { margin-top: .8rem; line-height: 1.35; }
+.board { width: min(100%, 650px); }
+.board.boardMedium .cell { min-height: 46px; font-size: clamp(1rem, 2.4vw, 1.65rem); border-radius: 11px; }
+.board.boardLarge { gap: 5px; padding: 8px; }
+.board.boardLarge .cell { min-height: 38px; font-size: clamp(.9rem, 2vw, 1.35rem); border-radius: 9px; border-width: 2px; }
+.board.boardLarge .cell .tilePoints { font-size: .58rem; right: 4px; bottom: 3px; }
+.board.boardLarge .cell .old { font-size: .55rem; left: 4px; top: 2px; }
+
+
+/* Wortwandler v5.8: Sortierung der Handsteine */
+.panelTitleRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: .8rem;
+}
+.tinyHint {
+  font-size: .9rem;
+  font-weight: 800;
+}
+.rackSortControls {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .55rem;
+  margin-top: .75rem;
+}
+.rackSortControls button {
+  min-height: 46px;
+  padding: .45rem .6rem;
+  border-width: 2px;
+  border-radius: 13px;
+  font-size: .95rem;
+}
+@media (max-width: 620px) {
+  .rackSortControls {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* Wortwandler v5.9: Handsteine frei ordnen */
+.rackManualHint {
+  margin: .55rem 0 0;
+  font-size: .92rem;
+  line-height: 1.25;
+}
+.tile[draggable="true"] {
+  touch-action: none;
+  cursor: grab;
+}
+.tile.dragging,
+.rackDragging .tile.active {
+  opacity: .72;
+}
+.rackDragging .tile {
+  cursor: grabbing;
+}
+
+
+/* Wortwandler v5.10: Handstein aufs Brett ziehen */
+.rackDragging .cell {
+  outline: 3px dashed rgba(0, 109, 119, .22);
+  outline-offset: -4px;
+}
+.rackDragging .cell.dropTarget,
+.cell.dropTarget {
+  outline: 6px solid var(--accent2);
+  outline-offset: -4px;
+  filter: brightness(1.04);
+}
+.rackDragging .board {
+  box-shadow: 0 0 0 5px rgba(0, 109, 119, .13);
+}
+
+
+/* Wortwandler v5.11: Buchstaben wieder exakt mittig */
+.cell,
+.tile {
+  position: relative;
+}
+.cell .tileLetter,
+.tile .tileLetter {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: block;
+  line-height: 1;
+  pointer-events: none;
+}
+.cell .tilePoints,
+.tile .tilePoints {
+  z-index: 2;
+}
+.cell.center::after {
+  z-index: 1;
+}
+
+
+/* Wortwandler v5.12: Aktionsbuttons sicher anklickbar */
+.controlsSecondaryV55 {
+  position: relative;
+  z-index: 10;
+}
+.controlsSecondaryV55 button {
+  pointer-events: auto;
+}
+
+
+/* Wortwandler v5.13: Aufgeben in Klassisch */
+.controlsSecondaryV55.hasGiveUp {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+#giveUpBtn {
+  background: #fff7f7;
+}
+@media (max-width: 620px) {
+  .controlsSecondaryV55.hasGiveUp {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* Wortwandler v5.14: Speicherstände löschen und sichere Navigation */
+.slotActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .55rem;
+  margin-top: .45rem;
+}
+.slotActions button {
+  margin-top: 0;
+}
+@media (max-width: 620px) {
+  .slotActions {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* Wortwandler v5.15: Tablet-Layout und sichtbarer Finger-Stein */
+.rackDragGhost {
+  position: fixed;
+  width: 60px;
+  height: 60px;
+  border-radius: 15px;
+  border: 4px solid #c39b5f;
+  background: white;
+  box-shadow: 0 14px 28px rgba(0,0,0,.26), 0 0 0 6px rgba(255,255,255,.65);
+  z-index: 99999;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(1.08);
+  font-size: 1.45rem;
+  font-weight: 950;
+}
+.rackDragGhost .tileLetter {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  line-height: 1;
+}
+.rackDragGhost .tilePoints {
+  position: absolute;
+  right: 5px;
+  bottom: 4px;
+  font-size: .72rem;
+  font-weight: 950;
+  color: rgba(37, 32, 24, .78);
+  line-height: 1;
+}
+.rackDragging .tile.active,
+.rackDragging .tile.dragging {
+  opacity: .45;
+}
+
+@media (min-width: 700px) and (max-width: 1050px) {
+  body { font-size: 17px; }
+  .screen { padding: .35rem; }
+  .gameLayoutV54 {
+    width: 100%;
+    max-width: 100%;
+    grid-template-columns: minmax(420px, 1fr) minmax(260px, 300px) !important;
+    gap: .45rem;
+    padding: .35rem;
+    justify-content: stretch;
+    align-items: start;
+  }
+  .leftGameColumn {
+    justify-items: stretch;
+    gap: .45rem;
+    min-width: 0;
+  }
+  .rightGameColumn {
+    order: initial;
+    gap: .45rem;
+    min-width: 0;
+  }
+  .leftGameColumn .board,
+  .rackPanelV54,
+  .controlsSecondaryV55 {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+  .panel {
+    padding: .55rem;
+    border-width: 3px;
+    border-radius: 18px;
+  }
+  .topbarV54 {
+    padding: .55rem;
+    border-width: 3px;
+    border-radius: 18px;
+    gap: .45rem;
+  }
+  .topbarV54 h1 { font-size: 1.45rem; }
+  .topbarV54 .topStats { gap: .35rem; }
+  .topbarV54 .topStats div { padding: .35rem .45rem; border-width: 2px; border-radius: 14px; }
+  .topStats span { font-size: 1.25rem; }
+  h2 { font-size: 1.05rem; margin-bottom: .45rem; }
+  button, input, select { min-height: 46px; }
+  button { padding: .42rem .55rem; border-width: 2px; border-radius: 14px; }
+  .controlsPrimaryV54,
+  .controlsSecondaryV55 { gap: .35rem; }
+  .board { gap: 4px; padding: 7px; border-width: 4px; border-radius: 18px; }
+  .cell { min-height: 32px; border-width: 2px; border-radius: 9px; }
+  .rack { gap: .35rem; }
+  .tile { width: 50px; height: 50px; border-width: 3px; border-radius: 12px; font-size: 1.18rem; }
+  .previewPanelV54 { min-height: 330px; }
+  .lastMovePanelV54 { min-height: 92px; }
+  .scoreDetails { gap: .18rem; margin: .22rem 0 .4rem; }
+  .scoreDetails div { padding: .18rem .32rem; border-width: 2px; border-radius: 8px; }
+  .rackSortControls { gap: .35rem; margin-top: .5rem; }
+  .rackSortControls button { min-height: 38px; padding: .3rem .4rem; font-size: .84rem; }
+  .rackManualHint { display: none; }
+}
+
+@media (min-width: 700px) and (max-width: 780px) {
+  body { font-size: 16px; }
+  .gameLayoutV54 {
+    grid-template-columns: minmax(390px, 1fr) minmax(245px, 260px) !important;
+    gap: .35rem;
+    padding: .3rem;
+  }
+  .panel { padding: .45rem; }
+  .topbarV54 { padding: .45rem; }
+  .topbarV54 h1 { font-size: 1.32rem; }
+  .board { gap: 3px; padding: 6px; }
+  .cell { min-height: 30px; }
+  .tile { width: 47px; height: 47px; }
+  .previewPanelV54 { min-height: 305px; }
+}
+
+@media (max-width: 699px) {
+  .gameLayoutV54 { grid-template-columns: 1fr !important; }
+}
+
+
+/* Wortwandler v5.16: variable Bretter sauber innerhalb der Spalte */
+.board {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+.cell {
+  min-width: 0;
+  overflow: hidden;
+}
+.board.boardMedium,
+.board.boardLarge {
+  width: min(100%, 650px);
+}
+@media (min-width: 700px) and (max-width: 1050px) {
+  .board {
+    width: 100%;
+    min-width: 0;
+  }
+  .board .cell,
+  .board.boardMedium .cell,
+  .board.boardLarge .cell {
+    min-height: 0 !important;
+  }
+  .board.boardLarge { gap: 3px; padding: 6px; }
+  .board.boardLarge .cell { font-size: clamp(.68rem, 1.65vw, 1rem); }
+  .board.boardMedium .cell { font-size: clamp(.78rem, 1.9vw, 1.15rem); }
+  .board.boardLarge .cell .tilePoints { font-size: .48rem; right: 3px; bottom: 3px; }
+  .board.boardMedium .cell .tilePoints { font-size: .54rem; right: 3px; bottom: 3px; }
+}
+@media (min-width: 700px) and (max-width: 780px) {
+  .board.boardLarge { gap: 2px; padding: 5px; }
+  .board.boardLarge .cell { font-size: clamp(.62rem, 1.45vw, .9rem); }
+}
+
+
+/* Wortwandler v5.17: Spielregeln und Über */
+.wideCard {
+  width: min(980px, 100%);
+}
+.infoPage {
+  text-align: left;
+  line-height: 1.45;
+}
+.infoPage h1 {
+  text-align: center;
+}
+.infoPage h2 {
+  margin-top: 1.2rem;
+  border-top: 3px solid rgba(223,201,157,.75);
+  padding-top: .9rem;
+}
+.infoPage ul {
+  margin-top: .35rem;
+  padding-left: 1.35rem;
+}
+.infoPage li {
+  margin: .28rem 0;
+}
+.infoTableWrap {
+  overflow-x: auto;
+  margin: .5rem 0 .8rem;
+}
+.infoTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: white;
+  border: 3px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.infoTable th,
+.infoTable td {
+  text-align: left;
+  padding: .55rem .7rem;
+  border-bottom: 2px solid var(--line);
+  vertical-align: top;
+}
+.infoTable tr:last-child td { border-bottom: 0; }
+.infoTable th {
+  background: #f6efe2;
+  color: var(--muted);
+}
+.aboutHero {
+  display: grid;
+  gap: .35rem;
+  background: white;
+  border: 3px solid var(--line);
+  border-radius: 18px;
+  padding: .85rem;
+  margin: .8rem 0 1rem;
+  text-align: center;
+}
+.aboutHero strong {
+  font-size: 1.35rem;
+}
+details {
+  background: white;
+  border: 3px solid var(--line);
+  border-radius: 16px;
+  padding: .65rem .85rem;
+  margin: .55rem 0;
+}
+summary {
+  cursor: pointer;
+  font-weight: 900;
+  color: var(--accent);
+}
+.bagList {
+  margin: .55rem 0 0;
+  line-height: 1.55;
+}
+@media (max-width: 620px) {
+  .infoPage h1 { font-size: 2rem; }
+  .infoTable th,
+  .infoTable td { padding: .45rem .5rem; }
+}
+
+
+/* Wortwandler v5.18: Brett-Fokus, Info-Spalte einklappbar, Zugleiste am Brett */
+.controlsPrimaryV518 {
+  width: 650px;
+  max-width: 650px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .55rem;
+}
+.controlsPrimaryV518 .infoToggleButton {
+  grid-column: 1 / -1;
+  min-height: 44px;
+  font-size: .95rem;
+  border-style: dashed;
+  background: #fffdf7;
+}
+body.infoCollapsed .rightGameColumn {
+  display: none;
+}
+body.infoCollapsed .gameLayoutV54 {
+  grid-template-columns: minmax(0, 780px) !important;
+  width: min(820px, 100%);
+  max-width: 820px;
+  justify-content: center;
+}
+body.infoCollapsed .leftGameColumn {
+  justify-items: stretch;
+}
+body.infoCollapsed .leftGameColumn .board,
+body.infoCollapsed .rackPanelV54,
+body.infoCollapsed .controlsPrimaryV518,
+body.infoCollapsed .controlsSecondaryV55 {
+  width: 100%;
+  max-width: 780px;
+}
+body.infoCollapsed .board.boardLarge .cell {
+  font-size: clamp(.82rem, 1.8vw, 1.25rem);
+}
+body.infoCollapsed .board.boardMedium .cell {
+  font-size: clamp(.92rem, 2vw, 1.4rem);
+}
+@media (min-width: 700px) and (max-width: 1050px) {
+  .controlsPrimaryV518 {
+    width: 100%;
+    max-width: 100%;
+    grid-template-columns: repeat(3, 1fr);
+    gap: .35rem;
+  }
+  .controlsPrimaryV518 .infoToggleButton {
+    min-height: 38px;
+    font-size: .85rem;
+  }
+  body.infoCollapsed .gameLayoutV54 {
+    grid-template-columns: minmax(0, min(760px, 100%)) !important;
+    width: min(780px, 100%);
+    max-width: 780px;
+  }
+  body.infoCollapsed .board.boardLarge { gap: 4px; padding: 7px; }
+  body.infoCollapsed .board.boardLarge .cell { font-size: clamp(.78rem, 2vw, 1.15rem); }
+  body.infoCollapsed .board.boardMedium .cell { font-size: clamp(.9rem, 2.2vw, 1.3rem); }
+}
+@media (max-width: 699px) {
+  .controlsPrimaryV518 {
+    width: 100%;
+    max-width: 100%;
+    grid-template-columns: 1fr;
+  }
+  .controlsPrimaryV518 .infoToggleButton {
+    grid-column: auto;
+  }
+}
+
+
+/* Wortwandler v5.19: Menüs wirklich ohne Spielfeld und größere Brettbuchstaben */
+.gameScreen:not(.active) {
+  display: none !important;
+}
+.gameScreen.active {
+  display: block !important;
+}
+
+/* Größere Buchstaben auf 11×11 und 13×13, besonders auf Tablets */
+.board.boardMedium .cell {
+  font-size: clamp(1.15rem, 2.75vw, 1.65rem) !important;
+}
+.board.boardLarge .cell {
+  font-size: clamp(.95rem, 2.35vw, 1.35rem) !important;
+}
+.board.boardMedium .cell .tilePoints {
+  font-size: .62rem !important;
+}
+.board.boardLarge .cell .tilePoints {
+  font-size: .54rem !important;
+}
+body.infoCollapsed .board.boardMedium .cell {
+  font-size: clamp(1.25rem, 3vw, 1.8rem) !important;
+}
+body.infoCollapsed .board.boardLarge .cell {
+  font-size: clamp(1.05rem, 2.55vw, 1.5rem) !important;
+}
+@media (min-width: 700px) and (max-width: 1050px) {
+  .board.boardMedium .cell {
+    font-size: clamp(1.05rem, 2.5vw, 1.45rem) !important;
+  }
+  .board.boardLarge .cell {
+    font-size: clamp(.86rem, 2.15vw, 1.18rem) !important;
+  }
+  body.infoCollapsed .board.boardMedium .cell {
+    font-size: clamp(1.18rem, 2.85vw, 1.65rem) !important;
+  }
+  body.infoCollapsed .board.boardLarge .cell {
+    font-size: clamp(.98rem, 2.35vw, 1.35rem) !important;
+  }
+}
+
+
+/* Brabbel v5.20: Handsteine mischen */
+.rackSortControls {
+  grid-template-columns: repeat(4, 1fr);
+}
+@media (max-width: 720px) {
+  .rackSortControls {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 420px) {
+  .rackSortControls {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* Brabbel v5.22: größere Handsteine, Sonderfelder und Joker */
+.rackPanelV54 .tile {
+  width: 70px;
+  height: 70px;
+  font-size: 1.85rem;
+  font-weight: 1000;
+}
+.rackPanelV54 .tile .tilePoints {
+  font-size: .82rem;
+  right: 6px;
+  bottom: 5px;
+}
+.tile.jokerTile,
+.cell.jokerCell {
+  background: linear-gradient(135deg, #fffdf7, #fff1b8);
+  border-color: #b8860b;
+}
+.jokerMark {
+  position: absolute;
+  left: 5px;
+  bottom: 3px;
+  font-size: .72rem;
+  color: #8a5a00;
+  font-weight: 950;
+  z-index: 2;
+}
+.cell.bonus:not(.bonusUsed) {
+  background: #fffaf0;
+}
+.cell.bonus-dl:not(.bonusUsed) { background: #dff7ff; border-color: #4d96b3; }
+.cell.bonus-tl:not(.bonusUsed) { background: #bde0fe; border-color: #2a6f97; }
+.cell.bonus-dw:not(.bonusUsed) { background: #ffe3e3; border-color: #d56a6a; }
+.cell.bonus-tw:not(.bonusUsed) { background: #ffc9c9; border-color: #b23a48; }
+.cell.bonusUsed {
+  box-shadow: inset 0 0 0 999px rgba(255,255,255,.28);
+}
+.bonusLabel {
+  font-weight: 1000;
+  font-size: .9rem;
+  color: rgba(37,32,24,.78);
+  pointer-events: none;
+}
+.jokerChoices {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: .35rem;
+  margin: .8rem 0;
+}
+.jokerChoices button {
+  min-height: 44px;
+  padding: .35rem;
+  border-width: 2px;
+  border-radius: 12px;
+}
+@media (min-width: 700px) and (max-width: 1050px) {
+  .rackPanelV54 .tile {
+    width: 60px;
+    height: 60px;
+    font-size: 1.55rem;
+  }
+}
+@media (max-width: 620px) {
+  .rackPanelV54 .tile {
+    width: 64px;
+    height: 64px;
+    font-size: 1.65rem;
+  }
+  .jokerChoices { grid-template-columns: repeat(4, 1fr); }
+}
+
+
+/* Brabbel v5.23: Sonderfeldfarben, kein Mittelstern, größere Buchstaben, Punkte-Popup */
+.cell.center::after {
+  content: none !important;
+}
+.bonus-dl .bonusLabel { color: #006d9c; }
+.bonus-tl .bonusLabel { color: #004e89; }
+.bonus-dw .bonusLabel { color: #b23a48; }
+.bonus-tw .bonusLabel { color: #8f1d2c; }
+.bonusLabel {
+  font-size: 1rem;
+  font-weight: 1000;
+  text-shadow: 0 1px 0 rgba(255,255,255,.75);
+}
+#messageText {
+  white-space: pre-line;
+}
+.rackPanelV54 .tile {
+  width: 76px;
+  height: 76px;
+  font-size: 2.12rem;
+  font-weight: 1000;
+}
+.rackPanelV54 .tile .tilePoints {
+  font-size: .88rem;
+}
+.board.boardMedium .cell {
+  font-size: clamp(1.28rem, 3vw, 1.85rem) !important;
+}
+.board.boardLarge .cell {
+  font-size: clamp(1.08rem, 2.7vw, 1.58rem) !important;
+}
+body.infoCollapsed .board.boardMedium .cell {
+  font-size: clamp(1.4rem, 3.3vw, 2rem) !important;
+}
+body.infoCollapsed .board.boardLarge .cell {
+  font-size: clamp(1.18rem, 3vw, 1.72rem) !important;
+}
+@media (min-width: 700px) and (max-width: 1050px) {
+  .rackPanelV54 .tile {
+    width: 66px;
+    height: 66px;
+    font-size: 1.85rem;
+  }
+  .board.boardMedium .cell {
+    font-size: clamp(1.16rem, 2.85vw, 1.65rem) !important;
+  }
+  .board.boardLarge .cell {
+    font-size: clamp(.98rem, 2.45vw, 1.38rem) !important;
+  }
+  body.infoCollapsed .board.boardMedium .cell {
+    font-size: clamp(1.28rem, 3.1vw, 1.82rem) !important;
+  }
+  body.infoCollapsed .board.boardLarge .cell {
+    font-size: clamp(1.08rem, 2.75vw, 1.55rem) !important;
+  }
+}
+@media (max-width: 620px) {
+  .rackPanelV54 .tile {
+    width: 70px;
+    height: 70px;
+    font-size: 1.95rem;
+  }
+}
+
+
+/* Brabbel v5.24: große Ansicht als Standard und geteilte Status-/Zugleiste */
+.boardUnderRow {
+  width: 650px;
+  max-width: 650px;
+  display: grid;
+  grid-template-columns: minmax(210px, .85fr) minmax(300px, 1.15fr);
+  gap: .65rem;
+}
+.turnStatusPanel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .42rem;
+  align-content: center;
+  padding: .7rem;
+}
+.turnStatusPanel div {
+  background: white;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  padding: .36rem .45rem;
+  min-height: 48px;
+}
+.turnStatusPanel strong {
+  display: block;
+  color: var(--muted);
+  font-size: .78rem;
+  line-height: 1.05;
+}
+.turnStatusPanel span {
+  display: block;
+  font-weight: 1000;
+  font-size: 1.05rem;
+  line-height: 1.1;
+  margin-top: .12rem;
+}
+.controlsPrimaryV518 {
+  width: auto;
+  max-width: none;
+  grid-template-columns: repeat(3, 1fr);
+  align-content: center;
+}
+.controlsPrimaryV518 button {
+  min-height: 58px;
+  font-size: 1.05rem;
+}
+.controlsPrimaryV518 .infoToggleButton {
+  grid-column: 1 / -1;
+  min-height: 42px;
+}
+body.infoCollapsed .boardUnderRow,
+body.infoCollapsed .leftGameColumn .board,
+body.infoCollapsed .rackPanelV54,
+body.infoCollapsed .controlsSecondaryV55 {
+  width: 100%;
+  max-width: 780px;
+}
+@media (min-width: 700px) and (max-width: 1050px) {
+  .boardUnderRow {
+    width: 100%;
+    max-width: 100%;
+    grid-template-columns: minmax(190px, .9fr) minmax(270px, 1.1fr);
+    gap: .4rem;
+  }
+  .turnStatusPanel {
+    padding: .45rem;
+    gap: .3rem;
+  }
+  .turnStatusPanel div {
+    min-height: 42px;
+    padding: .28rem .35rem;
+    border-width: 2px;
+  }
+  .turnStatusPanel strong { font-size: .7rem; }
+  .turnStatusPanel span { font-size: .9rem; }
+  .controlsPrimaryV518 button {
+    min-height: 48px;
+    font-size: .92rem;
+    padding: .35rem .45rem;
+  }
+  .controlsPrimaryV518 .infoToggleButton { min-height: 34px; }
+}
+@media (max-width: 760px) {
+  .boardUnderRow {
+    grid-template-columns: 1fr;
+  }
+  .controlsPrimaryV518 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 520px) {
+  .turnStatusPanel {
+    grid-template-columns: 1fr;
+  }
+  .controlsPrimaryV518 {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* Brabbel v5.25: Tablet-kompakte Statusleiste und Handsteine */
+@media (min-width: 600px) {
+  .boardUnderRow {
+    grid-template-columns: minmax(170px, .78fr) minmax(260px, 1.22fr) !important;
+    align-items: stretch;
+  }
+  .turnStatusPanel {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+.actionSymbolBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .35rem;
+}
+.actionIcon {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.35em;
+  height: 1.35em;
+  border-radius: 999px;
+  background: rgba(255,255,255,.92);
+  font-weight: 1000;
+  line-height: 1;
+}
+.dangerIcon {
+  color: #b00020;
+  border: 2px solid #b00020;
+}
+.okIcon {
+  color: #0f7b3b;
+  border: 2px solid #0f7b3b;
+}
+.rackPanelV54 {
+  padding: .65rem .75rem .55rem;
+}
+.rackPanelV54 .rack {
+  min-height: 74px;
+  align-items: center;
+}
+.rackSortControls {
+  grid-template-columns: auto repeat(4, minmax(58px, 1fr)) !important;
+  align-items: center;
+  gap: .35rem;
+  margin-top: .45rem;
+}
+.sortLabel {
+  color: var(--muted);
+  font-weight: 900;
+  font-size: .9rem;
+  white-space: nowrap;
+  padding: 0 .15rem;
+}
+.rackSortControls button {
+  min-height: 34px;
+  padding: .25rem .35rem;
+  border-width: 2px;
+  border-radius: 11px;
+  font-size: .84rem;
+}
+@media (min-width: 700px) and (max-width: 1050px) {
+  .boardUnderRow {
+    grid-template-columns: minmax(165px, .78fr) minmax(250px, 1.22fr) !important;
+  }
+  .turnStatusPanel div {
+    min-height: 38px;
+  }
+  .controlsPrimaryV518 button {
+    min-height: 44px;
+  }
+  .rackPanelV54 {
+    padding: .5rem .55rem .45rem;
+  }
+  .rackPanelV54 .rack {
+    min-height: 64px;
+  }
+  .rackSortControls {
+    margin-top: .32rem;
+    gap: .28rem;
+  }
+  .rackSortControls button {
+    min-height: 30px;
+    font-size: .78rem;
+  }
+  .sortLabel {
+    font-size: .78rem;
+  }
+}
+@media (max-width: 599px) {
+  .boardUnderRow {
+    grid-template-columns: 1fr !important;
+  }
+  .rackSortControls {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .sortLabel {
+    grid-column: 1 / -1;
+  }
+}
+
+
+/* Brabbel v5.26: Sonderfelder als Badges und grüne Zugfarben */
+/* Sonderfeld-Beschriftungen nicht mehr mittig, sondern als kleine Plakette */
+.cell .bonusLabel {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.8em;
+  height: 1.45em;
+  padding: 0 .22em;
+  border-radius: 999px;
+  background: rgba(255,255,255,.78);
+  font-size: .68rem;
+  font-weight: 1000;
+  line-height: 1;
+  pointer-events: none;
+  box-shadow: 0 1px 0 rgba(0,0,0,.08);
+}
+.cell.bonus-dl .bonusLabel { color: #006d9c; border: 2px solid rgba(0,109,156,.35); }
+.cell.bonus-tl .bonusLabel { color: #004e89; border: 2px solid rgba(0,78,137,.38); }
+.cell.bonus-dw .bonusLabel { color: #b23a48; border: 2px solid rgba(178,58,72,.35); }
+.cell.bonus-tw .bonusLabel { color: #8f1d2c; border: 2px solid rgba(143,29,44,.38); }
+
+/* Aktueller Zug deutlich grün, abgeschlossene eigene Steine heller grün */
+.cell.new,
+.cell.replaced {
+  background: #a7f3b5 !important;
+  border-color: #18864b !important;
+  box-shadow: inset 0 0 0 3px rgba(24,134,75,.18);
+}
+.cell.settled:not(.new):not(.replaced) {
+  background: #dcfce3 !important;
+  border-color: #89d99a !important;
+}
+.cell.center.filled:not(.new):not(.replaced) {
+  background: #dcfce3 !important;
+}
+.cell.center:not(.filled) {
+  background: var(--center);
+}
+
+/* Aktuelle Punkte ebenfalls im Grünspektrum */
+.turnStatusPanel div:nth-child(2) {
+  background: #dcfce3;
+  border-color: #89d99a;
+}
+.turnStatusPanel div:nth-child(2) strong,
+.turnStatusPanel div:nth-child(2) span {
+  color: #116033;
+}
+
+/* Brettbuchstaben noch etwas größer */
+.cell .tileLetter {
+  font-weight: 1000;
+}
+.board.boardMedium .cell {
+  font-size: clamp(1.38rem, 3.25vw, 2rem) !important;
+}
+.board.boardLarge .cell {
+  font-size: clamp(1.18rem, 2.95vw, 1.72rem) !important;
+}
+body.infoCollapsed .board.boardMedium .cell {
+  font-size: clamp(1.52rem, 3.55vw, 2.18rem) !important;
+}
+body.infoCollapsed .board.boardLarge .cell {
+  font-size: clamp(1.3rem, 3.2vw, 1.9rem) !important;
+}
+@media (min-width: 700px) and (max-width: 1050px) {
+  .cell .bonusLabel {
+    top: 3px;
+    left: 3px;
+    min-width: 1.65em;
+    height: 1.35em;
+    font-size: .58rem;
+  }
+  .board.boardMedium .cell {
+    font-size: clamp(1.26rem, 3.05vw, 1.82rem) !important;
+  }
+  .board.boardLarge .cell {
+    font-size: clamp(1.08rem, 2.75vw, 1.58rem) !important;
+  }
+  body.infoCollapsed .board.boardMedium .cell {
+    font-size: clamp(1.42rem, 3.38vw, 2.02rem) !important;
+  }
+  body.infoCollapsed .board.boardLarge .cell {
+    font-size: clamp(1.2rem, 3.05vw, 1.74rem) !important;
+  }
+}
+
+
+/* Brabbel v5.27: Sonderfelder wieder mittig, Mittelstern zurück */
+.cell:not(.filled) .bonusLabel {
+  position: static;
+  display: inline-block;
+  min-width: auto;
+  height: auto;
+  padding: 0;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: clamp(.95rem, 2.1vw, 1.25rem);
+  font-weight: 1000;
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(255,255,255,.75);
+}
+.cell.center:not(.filled)::after {
+  content: "★" !important;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  right: auto;
+  bottom: auto;
+  transform: translate(-50%, -50%);
+  color: #8a5a00;
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
+  line-height: 1;
+  z-index: 1;
+}
+.cell.center.filled::after {
+  content: none !important;
+}
+@media (min-width: 700px) and (max-width: 1050px) {
+  .cell:not(.filled) .bonusLabel {
+    font-size: clamp(.78rem, 1.85vw, 1.05rem);
+  }
+  .cell.center:not(.filled)::after {
+    font-size: clamp(1.05rem, 2.5vw, 1.45rem);
+  }
+}
+
+
+/* Brabbel v5.28: Mittelfeld nur Stern, größere gelegte Buchstaben */
+.cell.center .bonusLabel {
+  display: none !important;
+}
+.cell.filled .tileLetter {
+  font-size: 1.12em;
+}
+.board.boardMedium .cell {
+  font-size: clamp(1.5rem, 3.55vw, 2.18rem) !important;
+}
+.board.boardLarge .cell {
+  font-size: clamp(1.32rem, 3.25vw, 1.95rem) !important;
+}
+body.infoCollapsed .board.boardMedium .cell {
+  font-size: clamp(1.68rem, 3.9vw, 2.42rem) !important;
+}
+body.infoCollapsed .board.boardLarge .cell {
+  font-size: clamp(1.46rem, 3.55vw, 2.15rem) !important;
+}
+@media (min-width: 900px) {
+  .board.boardMedium .cell {
+    font-size: clamp(1.7rem, 3.8vw, 2.45rem) !important;
+  }
+  .board.boardLarge .cell {
+    font-size: clamp(1.5rem, 3.35vw, 2.18rem) !important;
+  }
+  body.infoCollapsed .board.boardMedium .cell {
+    font-size: clamp(1.9rem, 4.2vw, 2.7rem) !important;
+  }
+  body.infoCollapsed .board.boardLarge .cell {
+    font-size: clamp(1.65rem, 3.75vw, 2.38rem) !important;
+  }
+}
+@media (min-width: 700px) and (max-width: 1050px) {
+  .board.boardMedium .cell {
+    font-size: clamp(1.42rem, 3.4vw, 2rem) !important;
+  }
+  .board.boardLarge .cell {
+    font-size: clamp(1.22rem, 3.1vw, 1.76rem) !important;
+  }
+  body.infoCollapsed .board.boardMedium .cell {
+    font-size: clamp(1.58rem, 3.72vw, 2.24rem) !important;
+  }
+  body.infoCollapsed .board.boardLarge .cell {
+    font-size: clamp(1.38rem, 3.42vw, 1.98rem) !important;
+  }
+}
+
+
+/* Brabbel v5.38: Autosave */
+.autosaveSlot {
+  border-color: var(--accent);
+  background: #f1fbfb;
+}
+.autosaveSlot strong {
+  color: var(--accent);
+}
+
+
+/* Brabbel v5.38: kompaktere Handsteinleiste und Joker ohne Bildschirmtastatur */
+.rackSortControls {
+  justify-content: center;
+  gap: .32rem;
+  padding-top: .28rem;
+}
+.rackSortControls button {
+  min-width: 54px;
+  padding: .32rem .42rem;
+  min-height: 38px;
+  font-weight: 950;
+}
+#jokerInput[readonly] {
+  pointer-events: none;
+  caret-color: transparent;
+  user-select: none;
+  background: #fff8e8;
+  text-align: center;
+  font-weight: 950;
+}
+
+
+/* Brabbel v5.38: Sortierbuttons gleich groß und zentriert */
+.rackSortControls {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: .38rem !important;
+  width: 100%;
+  padding-top: .26rem;
+}
+.rackSortControls button {
+  flex: 0 0 76px !important;
+  width: 76px !important;
+  min-width: 76px !important;
+  max-width: 76px !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  text-align: center;
+}
+@media (max-width: 520px) {
+  .rackSortControls button {
+    flex-basis: 68px !important;
+    width: 68px !important;
+    min-width: 68px !important;
+    max-width: 68px !important;
+  }
+}
+
+
+/* Brabbel v5.38: Live-Feedback für Aktuell/Gültig/Prüfen/Fehler */
+.turnStatusPanel .currentMoveBox.moveStatus-empty {
+  background: #ffffff !important;
+  border-color: var(--line) !important;
+}
+.turnStatusPanel .currentMoveBox.moveStatus-empty strong,
+.turnStatusPanel .currentMoveBox.moveStatus-empty span {
+  color: var(--muted) !important;
+}
+.turnStatusPanel .currentMoveBox.moveStatus-valid {
+  background: #dcfce3 !important;
+  border-color: #76d48b !important;
+}
+.turnStatusPanel .currentMoveBox.moveStatus-valid strong,
+.turnStatusPanel .currentMoveBox.moveStatus-valid span {
+  color: #116033 !important;
+}
+.turnStatusPanel .currentMoveBox.moveStatus-verify {
+  background: #fff3bf !important;
+  border-color: #e7b93b !important;
+}
+.turnStatusPanel .currentMoveBox.moveStatus-verify strong,
+.turnStatusPanel .currentMoveBox.moveStatus-verify span {
+  color: #735100 !important;
+}
+.turnStatusPanel .currentMoveBox.moveStatus-error {
+  background: #ffe1df !important;
+  border-color: #ee8078 !important;
+}
+.turnStatusPanel .currentMoveBox.moveStatus-error strong,
+.turnStatusPanel .currentMoveBox.moveStatus-error span {
+  color: #8a1f19 !important;
+}
+
+
+/* Brabbel v5.38: gelegte Steine auf dem Brett vor Abschluss verschieben */
+.cell.movableTurnTile {
+  touch-action: none;
+  cursor: grab;
+}
+.cell.movableTurnTile:active {
+  cursor: grabbing;
+}
+.boardDragging .cell.boardTileDragging {
+  opacity: .5;
+  transform: scale(.96);
+}
+
+/* v5.36 Sonderfeld-Muster Auswahl */
+.layoutPickGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.55rem;margin-top:.45rem}.layoutPick{display:flex;align-items:center;justify-content:center;min-height:48px;padding:.55rem .7rem;border:2px solid var(--line);border-radius:14px;background:#fff;font-weight:800;cursor:pointer;text-align:center;position:relative}.layoutPick input{position:absolute;opacity:0;pointer-events:none}.layoutPick:has(input:checked){border-color:var(--brand);background:rgba(112,159,95,.14);box-shadow:0 0 0 2px rgba(112,159,95,.12) inset}@media (max-width:680px){.layoutPickGrid{grid-template-columns:1fr}}
+
+
+/* v5.38 Spielende-Zusammenfassung */
+.leaderRow small{display:block;color:var(--muted);font-weight:750;line-height:1.25;margin-top:.15rem}

@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"><meta name="theme-color" content="#f6efe2"><title>Brabbel v5.38</title><link rel="manifest" href="manifest.json"><link rel="stylesheet" href="styles.css"></head>
+<body><div id="app">
+<section id="screen-welcome" class="screen active"><div class="card hero"><h1>Brabbel</h1><p class="lead">Ein ruhiges Wortspiel fürs Tablet: legen, wandeln, prüfen, weiterspielen.</p><label class="biglabel">Spielername<input id="playerNameInput" maxlength="24" placeholder="Name eingeben"></label><button id="savePlayerBtn" class="primary wide">Weiter</button></div></section>
+<section id="screen-menu" class="screen"><div class="card hero"><h1>Brabbel</h1><p id="helloLine" class="lead"></p><div class="menuButtons"><button id="newGameMenuBtn" class="primary wide">Neues Spiel</button><button id="continueMenuBtn" class="wide">Spiel fortsetzen</button><button id="leaderboardMenuBtn" class="wide">Bestenliste</button><button id="lexiconMenuBtn" class="wide">Wortschatz</button>
+          <button id="settingsMenuBtn" class="wide">Einstellungen</button><button data-go="screen-rules" class="wide">Spielregeln</button><button data-go="screen-about" class="wide">Über</button><button id="exitAppBtn" class="wide danger">App beenden</button></div></div></section>
+<section id="screen-newgame" class="screen"><div class="card"><h1>Neues Spiel</h1>
+<label class="biglabel">Brettgröße<select id="boardSizeSelect"><option value="9" selected>9 × 9 · kurzes Spiel</option><option value="11">11 × 11 · ausgewogen</option><option value="13">13 × 13 · langes Spiel</option></select></label>
+<label class="biglabel">Spielbrett<select id="gameModeSelect"><option value="empty">Leeres Brett</option><option value="letters">Mit Buchstaben</option><option value="special">Mit Sonderfeldern</option></select></label>
+<div id="specialLayoutWrap" class="biglabel hidden"><span>Sonderfeld-Muster</span><div class="layoutPickGrid"><label class="layoutPick"><input type="radio" name="specialLayout" value="x" checked><span>X-Form</span></label><label class="layoutPick"><input type="radio" name="specialLayout" value="star"><span>Stern-Form</span></label><label class="layoutPick"><input type="radio" name="specialLayout" value="concentric"><span>Konzentrisch</span></label><label class="layoutPick"><input type="radio" name="specialLayout" value="random"><span>Zufall</span></label></div></div>
+<label id="seedCountWrap" class="biglabel hidden">Anzahl Startbuchstaben<input id="seedCountInput" type="number" min="2" max="10" value="5"></label>
+<label class="biglabel">Spielende<select id="endModeSelect"><option value="endless">Endlos · du bestimmst das Ende</option><option value="rounds">Rundenbasiert</option><option value="classic">Klassisch · begrenzter Buchstabenbeutel</option></select></label>
+<label id="roundLimitWrap" class="biglabel hidden">Anzahl Runden<input id="roundLimitInput" type="number" min="10" max="100" value="30"></label>
+<p class="muted startHint">Bei „Klassisch“ endet das Spiel automatisch erst, wenn der Buchstabenbeutel leer ist und keine Handsteine mehr übrig sind.</p>
+<div class="actions"><button id="startGameBtn" class="primary">Spiel starten</button><button data-go="screen-menu">Zurück</button></div></div></section>
+<section id="screen-slots" class="screen"><div class="card"><h1>Spiel fortsetzen</h1><div id="slotList" class="slotList"></div><div class="actions"><button data-go="screen-menu">Zurück</button></div></div></section>
+<section id="screen-save" class="screen"><div class="card"><h1>Spiel speichern</h1><p>Wähle einen Speicherplatz. Vorhandene Spielstände werden überschrieben.</p><div id="saveSlotList" class="slotList"></div><div class="actions"><button data-go="screen-game">Zurück zum Spiel</button></div></div></section>
+<section id="screen-leaderboard" class="screen"><div class="card"><h1>Bestenliste</h1><div id="leaderboardList" class="leaderboard"></div><div class="actions"><button data-go="screen-menu">Zurück</button></div></div></section>
+
+    <section id="screen-lexicon" class="screen">
+      <div class="card">
+        <h1>Persönlicher Wortschatz</h1>
+        <p>Eigene Wörter werden zusätzlich zum Hauptwörterbuch akzeptiert. Ä/AE, Ö/OE, Ü/UE und ß/SS gelten als gleichwertig.</p>
+
+        <div class="lexiconStats">
+          <div><strong>Hauptwörterbuch</strong><span id="mainDictCount">–</span></div>
+          <div><strong>Eigene Wörter</strong><span id="personalDictCount">0</span></div>
+        </div>
+
+        <label class="biglabel">
+          Neues Wort hinzufügen
+          <input id="lexiconInput" maxlength="32" placeholder="z.B. Familienname, Ort oder Dialektwort">
+        </label>
+
+        <div class="actions">
+          <button id="addLexiconBtn" class="primary">Wort hinzufügen</button>
+          <button data-go="screen-menu">Zurück</button>
+        </div>
+
+        <label class="biglabel">
+          Wort suchen
+          <input id="lexiconSearchInput" maxlength="32" placeholder="Suche im persönlichen Wortschatz">
+        </label>
+
+        <div class="actions">
+          <button id="exportLexiconBtn">Exportieren</button>
+          <label class="fileButton">
+            Importieren
+            <input id="importLexiconInput" type="file" accept=".json,application/json">
+          </label>
+        </div>
+
+        <h2>Gespeicherte Wörter</h2>
+        <div id="lexiconList" class="lexiconList"></div>
+      </div>
+    </section>
+
+
+    
+
+    <section id="screen-rules" class="screen">
+      <div class="card wideCard infoPage">
+        <h1>Spielregeln</h1>
+        <p class="lead">Brabbel ist ein ruhiges Wortspiel: Lege Wörter, wandle bestehende Buchstaben und sammle Punkte.</p>
+
+        <h2>Ziel des Spiels</h2>
+        <p>Bilde gültige Wörter auf dem Spielfeld. Je besser dein Zug, desto mehr Punkte bekommst du.</p>
+
+        <h2>Spielstart</h2>
+        <ul>
+          <li>Du spielst mit <strong>7 Handsteinen</strong>.</li>
+          <li>Beim leeren Brett muss der erste Zug das <strong>Mittelfeld</strong> berühren und aus mindestens <strong>2 gelegten Buchstaben</strong> bestehen.</li>
+          <li>Beim Brett „Mit Buchstaben“ liegen bereits Startbuchstaben aus.</li>
+          <li>Du kannst zwischen den Brettgrößen <strong>9×9</strong>, <strong>11×11</strong> und <strong>13×13</strong> wählen.</li><li>Beim Brett „Mit Sonderfeldern“ gibt es 2B, 3B, 2W und 3W. Diese Felder zählen nur einmal, wenn sie erstmals belegt werden.</li>
+        </ul>
+
+        <h2>Züge legen</h2>
+        <ul>
+          <li>Neue Buchstaben eines Zuges müssen in einer <strong>waagerechten oder senkrechten Linie</strong> liegen.</li>
+          <li>Ab dem zweiten erfolgreichen Zug muss der neue Zug mit vorhandenen Buchstaben verbunden sein.</li>
+          <li>Alle neu entstehenden Wörter waagerecht und senkrecht müssen gültig sein.</li>
+          <li>Du kannst einen Stein antippen und dann ein Feld antippen oder den Stein direkt aufs Brett ziehen.</li>
+          <li>Neu gelegte Steine kannst du vor dem Abschließen durch Antippen wieder zurücknehmen.</li>
+        </ul>
+
+        <h2>Buchstaben wandeln</h2>
+        <ul>
+          <li>Ab Runde 2 darfst du vorhandene Buchstaben überlegen.</li>
+          <li>Der alte Buchstabe verschwindet nach einem gültigen Zug dauerhaft.</li>
+          <li>Der alte Buchstabe wird auf dem Feld klein angezeigt, solange der Zug noch nicht abgeschlossen ist.</li>
+          <li>Den gleichen Buchstaben auf denselben Buchstaben zu legen ist nicht erlaubt.</li>
+        </ul>
+
+        <h2>Unbekannte Wörter</h2>
+        <p>Wenn ein Wort nicht erkannt wird, kannst du es bestätigen. Dann landet es im persönlichen Wortschatz und wird künftig akzeptiert. Umlaute werden freundlich behandelt: Ä/AE, Ö/OE, Ü/UE und ß/SS gelten als gleichwertig.</p>
+
+        <h2>Spielende</h2>
+        <ul>
+          <li><strong>Endlos:</strong> Du bestimmst selbst, wann du aufhörst.</li>
+          <li><strong>Rundenbasiert:</strong> Das Spiel endet nach der gewählten Rundenzahl.</li>
+          <li><strong>Klassisch:</strong> Es gibt einen begrenzten Buchstabenbeutel. Das Spiel endet automatisch, wenn Beutel und Hand leer sind.</li>
+          <li>Wenn der Beutel leer ist und du keine Buchstaben mehr legen kannst, kannst du <strong>Aufgeben</strong>. Der Wert deiner übrigen Handsteine wird dann abgezogen.</li>
+        </ul>
+
+        <h2>Punkte</h2>
+        <div class="infoTableWrap"><table class="infoTable"><thead><tr><th>Punkte</th><th>Buchstaben</th></tr></thead><tbody>
+          <tr><td>1</td><td>E N I S R A T D H</td></tr>
+          <tr><td>2</td><td>U L C G M O</td></tr>
+          <tr><td>3</td><td>B W F K</td></tr>
+          <tr><td>4</td><td>Z P V Ä</td></tr>
+          <tr><td>5</td><td>Ö Ü</td></tr>
+          <tr><td>6</td><td>J X QU</td></tr>
+          <tr><td>8</td><td>Y ß</td></tr><tr><td>0</td><td>★ Joker</td></tr>
+        </tbody></table></div>
+
+        <h2>Joker und Sonderfelder</h2><ul><li>Der Joker ★ zählt als gewählter Buchstabe, bringt aber 0 Punkte.</li><li>Beim Ablegen des Jokers wählst du den Buchstaben aus, auch QU ist möglich.</li><li>2B/3B verdoppeln oder verdreifachen den Buchstabenwert.</li><li>2W/3W verdoppeln oder verdreifachen den Wortwert.</li></ul><h2>Boni</h2>
+        <ul>
+          <li><strong>Längenbonus:</strong> Nur das längste Wort des Zuges erhält den Bonus: 5 Buchstaben +3, 6 +6, 7 +12, 8 +16, ab 9 +20.</li>
+          <li><strong>Handbonus:</strong> Wenn du alle 7 Handsteine in einem Zug nutzt, bekommst du +20 Punkte.</li>
+          <li><strong>Wandelbonus:</strong> Jeder überlegte Buchstabe bringt +2 Punkte.</li>
+          <li><strong>Kombobonus:</strong> 2 Wörter +2, 3 Wörter +5, 4 Wörter +10, ab 5 Wörter +15.</li>
+        </ul>
+
+        <div class="actions"><button data-go="screen-menu" class="primary">Zurück zum Menü</button></div>
+      </div>
+    </section>
+
+    <section id="screen-about" class="screen">
+      <div class="card wideCard infoPage">
+        <h1>Über Brabbel</h1>
+        <div class="aboutHero"><strong>Brabbel v5.38</strong><span>Stand: 13.06.2026</span><span>Erstellt von Atomality</span></div>
+
+        <h2>Was ist Brabbel?</h2>
+        <p>Brabbel ist ein deutschsprachiges Wortspiel fürs Tablet. Es ist als ruhiges, gut lesbares Spiel mit großen Bedienelementen gedacht.</p>
+
+        <h2>Wortschatz</h2>
+        <ul>
+          <li>Hauptwörterbuch: <strong>Hunspell/igerman98 gefiltert</strong></li>
+          <li>Quelle im Prototyp: <strong>@cspell/dict-de-de 4.1.2 / de-DE_frami / igerman98</strong></li>
+          <li>Einträge im Hauptwörterbuch: <strong>322.286</strong></li>
+          <li>Filter: alphabetische Wörter, normalisiert, Länge 2 bis 12</li>
+          <li>Zusätzlich gibt es einen persönlichen Wortschatz für Namen, Orte, Dialekt und Familienwörter.</li>
+        </ul>
+        <p class="muted">Lizenzhinweise liegen im Ordner „licenses“. Für eine spätere Produktversion sollten die Lizenzbedingungen noch einmal vollständig geprüft werden.</p>
+
+        <h2>Buchstabenwerte</h2>
+        <div class="infoTableWrap"><table class="infoTable"><thead><tr><th>Punkte</th><th>Buchstaben</th></tr></thead><tbody>
+          <tr><td>1</td><td>E N I S R A T D H</td></tr>
+          <tr><td>2</td><td>U L C G M O</td></tr>
+          <tr><td>3</td><td>B W F K</td></tr>
+          <tr><td>4</td><td>Z P V Ä</td></tr>
+          <tr><td>5</td><td>Ö Ü</td></tr>
+          <tr><td>6</td><td>J X QU</td></tr>
+          <tr><td>8</td><td>Y ß</td></tr><tr><td>0</td><td>★ Joker</td></tr>
+        </tbody></table></div>
+
+        <h2>Buchstabenbeutel im klassischen Spiel</h2>
+        <details open><summary>9×9 · 63 Steine</summary><p class="bagList">E 10 · N 6 · I 4 · S 4 · R 4 · A 4 · T 3 · H 3 · D 3 · U 2 · L 2 · G 2 · C 1 · M 1 · O 1 · B 1 · W 1 · F 1 · K 1 · P 1 · V 1 · Z 1 · Ä 1 · Ö 1 · Ü 1 · ß 1 · QU 1 · ★ 1</p></details>
+        <details><summary>11×11 · 77 Steine</summary><p class="bagList">E 10 · N 5 · I 5 · S 5 · R 5 · A 4 · T 4 · H 3 · D 4 · U 3 · L 3 · C 2 · G 2 · M 2 · O 2 · B 2 · W 1 · F 1 · K 1 · P 1 · V 1 · Z 1 · Ä 1 · Ö 1 · Ü 1 · ß 1 · QU 1 · J 1 · X 1 · Y 1 · ★ 2</p></details>
+        <details><summary>13×13 · 91 Steine</summary><p class="bagList">E 12 · N 7 · I 6 · S 6 · R 6 · A 5 · T 4 · H 4 · D 4 · U 4 · L 3 · C 2 · G 2 · M 2 · O 2 · B 2 · W 2 · F 2 · K 2 · P 2 · V 2 · Z 1 · Ä 1 · Ö 1 · Ü 1 · ß 1 · QU 1 · J 1 · X 1 · Y 1 · ★ 1</p></details>
+
+        <h2>Speicherung</h2>
+        <p>Spielstände, Bestenliste und persönlicher Wortschatz werden lokal im Browser bzw. in der installierten Web-App gespeichert.</p>
+
+        <h2>Bedienung</h2>
+        <ul>
+          <li>Stein antippen und Feld antippen</li>
+          <li>Stein mit Finger oder Maus aufs Brett ziehen</li>
+          <li>Handsteine frei sortieren</li>
+          <li>Schnellsortierung nach ABC, Wert oder Vokalen</li>
+        </ul>
+
+        <div class="actions"><button data-go="screen-menu" class="primary">Zurück zum Menü</button></div>
+      </div>
+    </section>
+
+    <section id="screen-settings" class="screen">
+      <div class="card">
+        <h1>Einstellungen</h1>
+        <label class="toggleRow">
+          <input id="animationsToggle" type="checkbox" checked>
+          <span>Animationen ein</span>
+        </label>
+        <label class="toggleRow">
+          <input id="twoFingerToggle" type="checkbox" checked>
+          <span>2-Finger-Tipp schließt Zug ab</span>
+        </label>
+        <p class="muted">Der 2-Finger-Tipp ist ein optionales Kürzel auf dem Brett. Falls ein Tablet damit zickt, kannst du ihn hier ausschalten.</p>
+        <div class="actions">
+          <button id="saveSettingsBtn" class="primary">Speichern</button>
+          <button data-go="screen-menu">Zurück</button>
+        </div>
+      </div>
+    </section>
+
+
+    <section id="screen-game" class="screen gameScreen">
+  <main class="gameLayoutV54">
+    <section class="leftGameColumn">
+            <div id="board" class="board" aria-label="Spielfeld"></div>
+
+      <div class="boardUnderRow">
+        <section class="panel turnStatusPanel" aria-label="Spielstand und aktueller Zug">
+          <div><strong>Beutel</strong><span id="bagStatusOut">–</span></div>
+          <div id="currentMoveBox" class="currentMoveBox moveStatus-empty"><strong id="currentMoveLabel">Aktuell</strong><span id="currentMoveOut">0 Pkt.</span></div>
+          <div><strong>Gesamt</strong><span id="totalScoreOut">0 Pkt.</span></div>
+          <div><strong>Runde</strong><span id="roundStatusOut">1</span></div>
+        </section>
+
+        <section class="panel controls controlsPrimaryV54 controlsPrimaryV518">
+          <button id="undoBtn" class="wide actionSymbolBtn undoActionButton" title="Zug zurücknehmen" aria-label="Zug zurücknehmen"><span>Zug</span><span class="actionIcon dangerIcon">✕</span></button>
+          <button id="commitMoveBtn" class="primary wide actionSymbolBtn" title="Zug abschließen" aria-label="Zug abschließen"><span>Zug</span><span class="actionIcon okIcon">✓</span></button>
+          <button id="passBtn" class="wide" title="Passe" aria-label="Passe">✋ Passe</button>
+          <button id="toggleInfoPanelBtn" type="button" class="wide infoToggleButton">Infos anzeigen</button>
+        </section>
+      </div>
+
+      <section class="panel rackPanelV54" aria-label="Handsteine">
+        <div id="rack" class="rack"></div>
+        <div class="rackSortControls" aria-label="Buchstaben sortieren"><button id="sortAlphaBtn" type="button" title="Alphabetisch sortieren">A→Z</button>
+          <button id="sortPointsBtn" type="button" title="Nach Punktwert sortieren, hoch nach niedrig">8→1</button>
+          <button id="sortVowelsBtn" type="button" title="Vokale zuerst">AEIOU</button>
+          <button id="shuffleRackBtn" type="button" title="Zufällig anordnen">🎲</button>
+        </div>
+      </section>
+
+      <section id="bottomGameControls" class="panel controls controlsSecondaryV55">
+        <button id="giveUpBtn" type="button" class="wide danger hidden">Aufgeben</button>
+        <button id="endGameBtn" type="button" class="wide">Zum Hauptmenü</button>
+        <button id="saveGameBtn" type="button" class="wide">Spiel speichern</button>
+      </section>
+    </section>
+
+    <aside class="rightGameColumn">
+      <header class="topbar topbarV54">
+        <div>
+          <h1>Brabbel</h1>
+          <p id="gameSubtitle"></p>
+        </div>
+        <div class="topStats">
+          <div><strong>Punkte</strong><span id="scoreOut">0</span></div>
+          <div><strong>Runde</strong><span id="roundOut">1</span></div>
+        </div>
+      </header>
+
+      <section class="panel previewPanelV54">
+        <h2>Zugvorschau</h2>
+        <div id="preview" class="preview"></div>
+      </section>
+
+      <section class="panel lastMovePanelV54">
+        <h2>Letzter Zug</h2>
+        <div id="lastMove" class="lastMove muted">Noch kein Zug gewertet.</div>
+      </section>
+    </aside>
+  </main>
+</section>
+</div><dialog id="verifyDialog"><h2>Wort verifizieren</h2><p>„<strong id="verifyWord"></strong>“ wurde nicht erkannt.</p><p>Soll das Wort in den Wortschatz übernommen werden?</p><menu><button id="verifyNoBtn" type="button" onclick="window.wwRejectUnknownWord()">Nein</button><button id="verifyYesBtn" type="button" class="primary" onclick="window.wwAcceptUnknownWord()">Ja</button></menu></dialog><dialog id="jokerDialog"><h2>Joker wählen</h2><p>Welcher Buchstabe soll der Joker sein?</p><input id="jokerInput" maxlength="2" readonly inputmode="none" tabindex="-1" aria-readonly="true" placeholder="Buchstabe unten wählen"><div id="jokerChoices" class="jokerChoices"></div><menu><button id="jokerCancelBtn" type="button">Abbrechen</button><button id="jokerOkBtn" type="button" class="primary">Übernehmen</button></menu></dialog><dialog id="messageDialog"><h2 id="messageTitle">Hinweis</h2><p id="messageText"></p><menu><button id="messageOkBtn" type="button" class="primary">OK</button></menu></dialog><dialog id="confirmDialog"><h2 id="confirmTitle">Bitte bestätigen</h2><p id="confirmText"></p><menu><button id="confirmNoBtn" type="button" onclick="window.wwConfirmNo()">Nein</button><button id="confirmYesBtn" type="button" class="primary" onclick="window.wwConfirmYes()">Ja</button></menu></dialog><script src="dictionary.js"></script><script src="app.js"></script></body></html>

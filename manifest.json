@@ -1,0 +1,9 @@
+{
+  "name": "Brabbel v5.38",
+  "short_name": "Brabbel",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#fff9ed",
+  "theme_color": "#f6efe2",
+  "icons": []
+}
