@@ -8,6 +8,10 @@ const CLASSIC_BAGS = {
   11: {"E":10,"N":5,"I":5,"S":5,"R":5,"A":4,"T":4,"H":3,"D":4,"U":3,"L":3,"C":2,"G":2,"M":2,"O":2,"B":2,"W":1,"F":1,"K":1,"P":1,"V":1,"Z":1,"Ä":1,"Ö":1,"Ü":1,"ß":1,"QU":1,"J":1,"X":1,"Y":1,"★":2},
   13: {"E":12,"N":7,"I":6,"S":6,"R":6,"A":5,"T":4,"H":4,"D":4,"U":4,"L":3,"C":2,"G":2,"M":2,"O":2,"B":2,"W":2,"F":2,"K":2,"P":2,"V":2,"Z":1,"Ä":1,"Ö":1,"Ü":1,"ß":1,"QU":1,"J":1,"X":1,"Y":1,"★":1}
 };
+
+const TARGET_BAG_TOTALS = {9:63, 11:77, 13:91};
+const DEFAULT_JOKER_COUNTS = {9:1, 11:2, 13:2};
+const MAX_JOKER_COUNTS = {9:2, 11:3, 13:4};
 const VOWELS = ["A", "E", "I", "O", "U", "Ä", "Ö", "Ü"];
 const PRAISES = ["Gut gemacht!", "Schön gelegt!", "Starker Zug!", "Prima gewandelt!", "Das sitzt!", "Feine Wortarbeit!"];
 
@@ -69,11 +73,54 @@ function getCenterIndex(size=getBoardSize()) {
   return Math.floor(size / 2) * size + Math.floor(size / 2);
 }
 function getBagTotal(size) {
-  const bag = CLASSIC_BAGS[size] || CLASSIC_BAGS[DEFAULT_BOARD_SIZE];
-  return Object.values(bag).reduce((a,b) => a + b, 0);
+  return TARGET_BAG_TOTALS[size] || TARGET_BAG_TOTALS[DEFAULT_BOARD_SIZE];
 }
-function createClassicBag(size) {
-  const conf = CLASSIC_BAGS[size] || CLASSIC_BAGS[DEFAULT_BOARD_SIZE];
+function getJokerDefaultForSize(size) {
+  return DEFAULT_JOKER_COUNTS[size] ?? DEFAULT_JOKER_COUNTS[DEFAULT_BOARD_SIZE];
+}
+function getJokerMaxForSize(size) {
+  return MAX_JOKER_COUNTS[size] ?? MAX_JOKER_COUNTS[DEFAULT_BOARD_SIZE];
+}
+function getSelectedJokerCount(size=(Number($("boardSizeSelect")?.value) || DEFAULT_BOARD_SIZE)) {
+  const selected = Number($("jokerCountSelect")?.value);
+  const fallback = getJokerDefaultForSize(size);
+  return clamp(Number.isFinite(selected) ? selected : fallback, 0, getJokerMaxForSize(size));
+}
+function getConfiguredJokerCount(size=getBoardSize()) {
+  const raw = state && state.jokerCount !== undefined ? Number(state.jokerCount) : getSelectedJokerCount(size);
+  return clamp(Number.isFinite(raw) ? raw : getJokerDefaultForSize(size), 0, getJokerMaxForSize(size));
+}
+function getBaseBagConfig(size) {
+  const source = CLASSIC_BAGS[size] || CLASSIC_BAGS[DEFAULT_BOARD_SIZE];
+  const conf = {...source};
+  delete conf[JOKER_TILE];
+  const fillers = ["E","N","I","S","R","A","T","D","H","U","L"];
+  let total = Object.values(conf).reduce((a,b) => a + b, 0);
+  let i = 0;
+  while (total < getBagTotal(size)) {
+    const tile = fillers[i % fillers.length];
+    conf[tile] = (conf[tile] || 0) + 1;
+    total++; i++;
+  }
+  return conf;
+}
+function createBagConfig(size, jokerCount=getJokerDefaultForSize(size)) {
+  const conf = getBaseBagConfig(size);
+  let remove = clamp(Number(jokerCount) || 0, 0, getJokerMaxForSize(size));
+  const removalPool = ["E","N","I","S","R","A","T","D","H","U","L","C","G","M","O"];
+  let guard = 0;
+  while (remove > 0 && guard < 200) {
+    guard++;
+    for (const tile of removalPool) {
+      if (remove <= 0) break;
+      if ((conf[tile] || 0) > 1) { conf[tile]--; remove--; }
+    }
+  }
+  conf[JOKER_TILE] = clamp(Number(jokerCount) || 0, 0, getJokerMaxForSize(size));
+  return conf;
+}
+function createClassicBag(size, jokerCount=getJokerDefaultForSize(size)) {
+  const conf = createBagConfig(size, jokerCount);
   const bag = [];
   Object.entries(conf).forEach(([tile, count]) => {
     for (let i = 0; i < count; i++) bag.push(tile);
@@ -225,9 +272,9 @@ function init() {
   $("lexiconMenuBtn").addEventListener("click", () => showScreen("screen-lexicon"));
   $("settingsMenuBtn").addEventListener("click", () => showScreen("screen-settings"));
   $("exitAppBtn").addEventListener("click", exitApp);
-  $("gameModeSelect").addEventListener("change", updateNewGameUi);
-  $("endModeSelect").addEventListener("change", updateNewGameUi);
-  $("boardSizeSelect").addEventListener("change", updateNewGameUi);
+  $("gameModeSelect").addEventListener("change", () => updateNewGameUi(false));
+  $("endModeSelect").addEventListener("change", () => updateNewGameUi(false));
+  $("boardSizeSelect").addEventListener("change", () => updateNewGameUi(true));
   $("startGameBtn").addEventListener("click", startNewGame);
   $("commitMoveBtn").addEventListener("click", commitMove);
   $("passBtn").addEventListener("click", passTurn);
@@ -255,7 +302,7 @@ function init() {
   $("saveSettingsBtn").addEventListener("click", saveSettings);
   applyAnimationSetting();
   applyInfoPanelSetting();
-  updateNewGameUi();
+  updateNewGameUi(true);
   $("confirmNoBtn").onclick = window.wwConfirmNo;
   $("confirmYesBtn").onclick = window.wwConfirmYes;
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
@@ -266,11 +313,29 @@ function getSelectedSpecialLayoutType() {
   const picked = document.querySelector('input[name="specialLayout"]:checked');
   return picked ? picked.value : "x";
 }
-function updateNewGameUi() {
+function updateJokerCountOptions(resetToDefault=false) {
+  const select = $("jokerCountSelect");
+  if (!select) return;
+  const size = Number($("boardSizeSelect")?.value) || DEFAULT_BOARD_SIZE;
+  const max = getJokerMaxForSize(size);
+  const def = getJokerDefaultForSize(size);
+  const previous = Number(select.value);
+  select.innerHTML = "";
+  for (let i = 0; i <= max; i++) {
+    const option = document.createElement("option");
+    option.value = String(i);
+    option.textContent = `${i} Joker${i === def ? " · empfohlen" : ""}`;
+    select.appendChild(option);
+  }
+  const next = resetToDefault || !Number.isFinite(previous) ? def : clamp(previous, 0, max);
+  select.value = String(next);
+}
+function updateNewGameUi(resetJokers=false) {
   const gameMode = $("gameModeSelect").value;
   $("seedCountWrap").classList.toggle("hidden", gameMode !== "letters");
   $("specialLayoutWrap").classList.toggle("hidden", gameMode !== "special");
   $("roundLimitWrap").classList.toggle("hidden", $("endModeSelect").value !== "rounds");
+  updateJokerCountOptions(resetJokers);
 }
 function buildSpecialLayoutSets(size, kind) {
   const sets = {TW:new Set(), DW:new Set(), TL:new Set(), DL:new Set()};
@@ -356,16 +421,18 @@ function emptyBoard(size=getBoardSize()) {
   }));
 }
 function startNewGame() {
+  const playMode = $("playModeSelect")?.value || "solo";
   const mode = $("gameModeSelect").value;
   const boardSize = clamp(Number($("boardSizeSelect").value) || DEFAULT_BOARD_SIZE, 9, 13);
   const endMode = $("endModeSelect").value;
   const roundLimit = clamp(Number($("roundLimitInput").value) || 30, 10, 100);
   const specialLayoutType = mode === "special" ? getSelectedSpecialLayoutType() : "";
+  const jokerCount = getSelectedJokerCount(boardSize);
   state = {
     player: localStorage.getItem(K.player) || "Spieler",
-    mode, boardSize, endMode, roundLimit, specialLayoutType,
+    playMode, mode, boardSize, endMode, roundLimit, specialLayoutType, jokerCount,
     score: 0, round: 1, firstSuccessfulMove: false,
-    board: [], rack: [], bag: endMode === "classic" ? createClassicBag(boardSize) : null,
+    board: [], rack: [], bag: endMode === "classic" ? createClassicBag(boardSize, jokerCount) : null,
     lastMove: null, startedAt: new Date().toISOString(), savedAt: null,
     specialLayoutData: null,
     stats: createEmptyStats()
@@ -452,18 +519,28 @@ function drawConsonantWithLimits(rack) {
   }
   return "N";
 }
+function maybeDrawJokerForRack(rack) {
+  const jokerCount = getConfiguredJokerCount(getBoardSize());
+  if (jokerCount <= 0) return "";
+  const maxRackJokers = Math.max(1, Math.min(2, jokerCount));
+  if (rack.filter(isJokerTile).length >= maxRackJokers) return "";
+  const chance = jokerCount / getBagTotal(getBoardSize());
+  return Math.random() < chance ? JOKER_TILE : "";
+}
 function drawLetterWithLimits(rack) {
   let g = 0;
   while (g < 200) {
     g++;
-    const l = weightedChoice();
+    const joker = maybeDrawJokerForRack(rack);
+    const l = joker || weightedChoice();
     if (rack.filter(x => x === l).length < 3) return l;
   }
   return "E";
 }
 function weightedChoice() {
-  let total = LETTER_WEIGHTS.reduce((s, [,w]) => s + w, 0), r = Math.random() * total;
-  for (const [l, w] of LETTER_WEIGHTS) {
+  const pool = LETTER_WEIGHTS.filter(([l]) => !isJokerTile(l));
+  let total = pool.reduce((s, [,w]) => s + w, 0), r = Math.random() * total;
+  for (const [l, w] of pool) {
     r -= w;
     if (r <= 0) return l;
   }

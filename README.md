@@ -400,3 +400,15 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 - Spielende zeigt eine Zusammenfassung mit Gesamtpunkten, Runden, Ø pro Runde, gewerteten Wörtern, längstem Wort, stärkstem Zug und bestem Einzelwort.
 - Bestenliste speichert und zeigt die Zusammenfassung kompakt mit an.
 - Wechsel ins Hauptmenü löst weiterhin keine Spielende-Zusammenfassung aus.
+
+
+## Neu in v5.39
+
+- Menü „Neues Spiel“ wurde erweitert: Spielmodus steht jetzt an erster Stelle.
+- „Einzel“ ist aktiv; „Spieler vs. Spieler“ und „Spieler vs. Dr. Brabbel“ sind als spätere Modi ausgegraut sichtbar.
+- Jokeranzahl ist abhängig von der Brettgröße wählbar:
+  - 9×9: 0–2, Standard 1
+  - 11×11: 0–3, Standard 2
+  - 13×13: 0–4, Standard 2
+- Klassische Beutelgrößen bleiben konstant bei 63 / 77 / 91 Steinen; Joker ersetzen andere Buchstaben.
+- Endlos- und Rundenmodus nutzen die gewählte Jokeranzahl als Zieh-Wahrscheinlichkeit.

@@ -1,4 +1,4 @@
-const CACHE = "brabbel-v5.38-spielende-zusammenfassung";
+const CACHE = "brabbel-v5.39-joker-waehlbar";
 const FILES = ["./", "./index.html", "./styles.css", "./app.js", "./dictionary.js", "./manifest.json"];
 self.addEventListener("install", event => {
   self.skipWaiting();

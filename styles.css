@@ -1534,7 +1534,7 @@ body.infoCollapsed .board.boardLarge .cell {
 }
 
 
-/* Brabbel v5.38: Autosave */
+/* Brabbel v5.39: Autosave */
 .autosaveSlot {
   border-color: var(--accent);
   background: #f1fbfb;
@@ -1544,7 +1544,7 @@ body.infoCollapsed .board.boardLarge .cell {
 }
 
 
-/* Brabbel v5.38: kompaktere Handsteinleiste und Joker ohne Bildschirmtastatur */
+/* Brabbel v5.39: kompaktere Handsteinleiste und Joker ohne Bildschirmtastatur */
 .rackSortControls {
   justify-content: center;
   gap: .32rem;
@@ -1566,7 +1566,7 @@ body.infoCollapsed .board.boardLarge .cell {
 }
 
 
-/* Brabbel v5.38: Sortierbuttons gleich groß und zentriert */
+/* Brabbel v5.39: Sortierbuttons gleich groß und zentriert */
 .rackSortControls {
   display: flex !important;
   justify-content: center !important;
@@ -1594,7 +1594,7 @@ body.infoCollapsed .board.boardLarge .cell {
 }
 
 
-/* Brabbel v5.38: Live-Feedback für Aktuell/Gültig/Prüfen/Fehler */
+/* Brabbel v5.39: Live-Feedback für Aktuell/Gültig/Prüfen/Fehler */
 .turnStatusPanel .currentMoveBox.moveStatus-empty {
   background: #ffffff !important;
   border-color: var(--line) !important;
@@ -1629,7 +1629,7 @@ body.infoCollapsed .board.boardLarge .cell {
 }
 
 
-/* Brabbel v5.38: gelegte Steine auf dem Brett vor Abschluss verschieben */
+/* Brabbel v5.39: gelegte Steine auf dem Brett vor Abschluss verschieben */
 .cell.movableTurnTile {
   touch-action: none;
   cursor: grab;
@@ -1648,3 +1648,8 @@ body.infoCollapsed .board.boardLarge .cell {
 
 /* v5.38 Spielende-Zusammenfassung */
 .leaderRow small{display:block;color:var(--muted);font-weight:750;line-height:1.25;margin-top:.15rem}
+
+
+/* v5.39 Spielmodus und Joker-Auswahl */
+#playModeSelect option:disabled{color:var(--muted)}
+#jokerCountSelect{font-weight:850}

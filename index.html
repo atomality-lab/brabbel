@@ -1,16 +1,18 @@
 <!doctype html>
-<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"><meta name="theme-color" content="#f6efe2"><title>Brabbel v5.38</title><link rel="manifest" href="manifest.json"><link rel="stylesheet" href="styles.css"></head>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"><meta name="theme-color" content="#f6efe2"><title>Brabbel v5.39</title><link rel="manifest" href="manifest.json"><link rel="stylesheet" href="styles.css"></head>
 <body><div id="app">
 <section id="screen-welcome" class="screen active"><div class="card hero"><h1>Brabbel</h1><p class="lead">Ein ruhiges Wortspiel fürs Tablet: legen, wandeln, prüfen, weiterspielen.</p><label class="biglabel">Spielername<input id="playerNameInput" maxlength="24" placeholder="Name eingeben"></label><button id="savePlayerBtn" class="primary wide">Weiter</button></div></section>
 <section id="screen-menu" class="screen"><div class="card hero"><h1>Brabbel</h1><p id="helloLine" class="lead"></p><div class="menuButtons"><button id="newGameMenuBtn" class="primary wide">Neues Spiel</button><button id="continueMenuBtn" class="wide">Spiel fortsetzen</button><button id="leaderboardMenuBtn" class="wide">Bestenliste</button><button id="lexiconMenuBtn" class="wide">Wortschatz</button>
           <button id="settingsMenuBtn" class="wide">Einstellungen</button><button data-go="screen-rules" class="wide">Spielregeln</button><button data-go="screen-about" class="wide">Über</button><button id="exitAppBtn" class="wide danger">App beenden</button></div></div></section>
 <section id="screen-newgame" class="screen"><div class="card"><h1>Neues Spiel</h1>
+<label class="biglabel">Spielmodus<select id="playModeSelect"><option value="solo" selected>Einzel</option><option value="duel" disabled>Spieler vs. Spieler · kommt später</option><option value="ai" disabled>Spieler vs. Dr. Brabbel · kommt später</option></select></label>
 <label class="biglabel">Brettgröße<select id="boardSizeSelect"><option value="9" selected>9 × 9 · kurzes Spiel</option><option value="11">11 × 11 · ausgewogen</option><option value="13">13 × 13 · langes Spiel</option></select></label>
 <label class="biglabel">Spielbrett<select id="gameModeSelect"><option value="empty">Leeres Brett</option><option value="letters">Mit Buchstaben</option><option value="special">Mit Sonderfeldern</option></select></label>
 <div id="specialLayoutWrap" class="biglabel hidden"><span>Sonderfeld-Muster</span><div class="layoutPickGrid"><label class="layoutPick"><input type="radio" name="specialLayout" value="x" checked><span>X-Form</span></label><label class="layoutPick"><input type="radio" name="specialLayout" value="star"><span>Stern-Form</span></label><label class="layoutPick"><input type="radio" name="specialLayout" value="concentric"><span>Konzentrisch</span></label><label class="layoutPick"><input type="radio" name="specialLayout" value="random"><span>Zufall</span></label></div></div>
 <label id="seedCountWrap" class="biglabel hidden">Anzahl Startbuchstaben<input id="seedCountInput" type="number" min="2" max="10" value="5"></label>
 <label class="biglabel">Spielende<select id="endModeSelect"><option value="endless">Endlos · du bestimmst das Ende</option><option value="rounds">Rundenbasiert</option><option value="classic">Klassisch · begrenzter Buchstabenbeutel</option></select></label>
 <label id="roundLimitWrap" class="biglabel hidden">Anzahl Runden<input id="roundLimitInput" type="number" min="10" max="100" value="30"></label>
+<label id="jokerCountWrap" class="biglabel">Joker im Spiel<select id="jokerCountSelect"></select></label>
 <p class="muted startHint">Bei „Klassisch“ endet das Spiel automatisch erst, wenn der Buchstabenbeutel leer ist und keine Handsteine mehr übrig sind.</p>
 <div class="actions"><button id="startGameBtn" class="primary">Spiel starten</button><button data-go="screen-menu">Zurück</button></div></div></section>
 <section id="screen-slots" class="screen"><div class="card"><h1>Spiel fortsetzen</h1><div id="slotList" class="slotList"></div><div class="actions"><button data-go="screen-menu">Zurück</button></div></div></section>
@@ -128,7 +130,7 @@
     <section id="screen-about" class="screen">
       <div class="card wideCard infoPage">
         <h1>Über Brabbel</h1>
-        <div class="aboutHero"><strong>Brabbel v5.38</strong><span>Stand: 13.06.2026</span><span>Erstellt von Atomality</span></div>
+        <div class="aboutHero"><strong>Brabbel v5.39</strong><span>Stand: 13.06.2026</span><span>Erstellt von Atomality</span></div>
 
         <h2>Was ist Brabbel?</h2>
         <p>Brabbel ist ein deutschsprachiges Wortspiel fürs Tablet. Es ist als ruhiges, gut lesbares Spiel mit großen Bedienelementen gedacht.</p>
