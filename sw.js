@@ -1,5 +1,5 @@
-const CACHE = "brabbel-v5.39-joker-waehlbar";
-const FILES = ["./", "./index.html", "./styles.css", "./app.js", "./dictionary.js", "./manifest.json"];
+const CACHE = "brabbel-v5.40-app-icon";
+const FILES = ["./", "./index.html", "./styles.css", "./app.js", "./dictionary.js", "./manifest.json", "./apple-touch-icon.png", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-maskable-512.png"];
 self.addEventListener("install", event => {
   self.skipWaiting();
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(FILES)));

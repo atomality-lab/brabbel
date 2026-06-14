@@ -1,4 +1,4 @@
-# Brabbel v5.20 – Tablet/PWA-Prototyp
+# Brabbel v5.40 – App-Icon / PWA-Feinschliff
 
 ## Start
 1. ZIP entpacken.
@@ -412,3 +412,13 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
   - 13×13: 0–4, Standard 2
 - Klassische Beutelgrößen bleiben konstant bei 63 / 77 / 91 Steinen; Joker ersetzen andere Buchstaben.
 - Endlos- und Rundenmodus nutzen die gewählte Jokeranzahl als Zieh-Wahrscheinlichkeit.
+
+
+## Neu in v5.40
+
+- App-Icon für PWA/Home-Screen ergänzt.
+- `manifest.json` enthält jetzt 192×192-, 512×512- und maskable-Icon.
+- `apple-touch-icon.png` für iPad/iPhone ergänzt.
+- `index.html` verweist auf das Apple-Touch-Icon.
+- Service-Worker-Cache auf `brabbel-v5.40-app-icon` erhöht und Icon-Dateien in den Cache aufgenommen.
+
