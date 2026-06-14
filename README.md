@@ -1,4 +1,4 @@
-# Brabbel v5.41 – Zu zweit / Tablet weitergeben
+# Brabbel v5.42 – Duell-Feinschliff und Beutelanzeige
 
 ## Start
 1. ZIP entpacken.
@@ -433,4 +433,14 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 - Übergabebildschirm nach Zug und Passe, damit die nächste Hand verborgen bleibt.
 - Autosave und manuelle Speicherstände unterstützen den Zu-zweit-Modus.
 - Spielende-Zusammenfassung und Bestenliste zeigen Duell-Ergebnisse.
+
+
+
+## Neu in v5.42
+
+- Im Zu-zweit-Modus wird der Startspieler zufällig ausgelost. Vor dem ersten Zug erscheint ein Übergabebildschirm, bevor Handsteine sichtbar werden.
+- Übergabebildschirm optisch entzerrt: Der Weiter-Button hat mehr Abstand zu den Punkteboxen.
+- Aufgabe im Zu-zweit-Modus beendet nicht mehr sofort das Spiel: Der Handwert wird abgezogen und der andere Spieler erhält noch einen letzten Zug.
+- Klassische Beutelgrößen reduziert: 9×9 = 56 Steine, 11×11 = 70 Steine, 13×13 = 84 Steine.
+- In der Infoansicht wird im klassischen Modus unter „Letzter Zug“ angezeigt, welche Buchstaben noch im Beutel sind.
 

@@ -1655,7 +1655,7 @@ body.infoCollapsed .board.boardLarge .cell {
 #jokerCountSelect{font-weight:850}
 
 
-/* Brabbel v5.41: Zu zweit / Tablet weitergeben */
+/* Brabbel v5.41/v5.42: Zu zweit / Tablet weitergeben */
 .duelNamesWrap {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1726,4 +1726,26 @@ body.infoCollapsed .board.boardLarge .cell {
   .duelScorePill {
     min-width: 100%;
   }
+}
+
+
+/* Brabbel v5.42: Übergabeabstand und Beutelanzeige */
+.handoffCard #handoffContinueBtn {
+  margin-top: 1.4rem;
+}
+.bagLettersGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(74px, 1fr));
+  gap: .45rem;
+}
+.bagLettersGrid span {
+  background: white;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  padding: .35rem .45rem;
+  text-align: center;
+  font-weight: 850;
+}
+.bagLettersGrid strong {
+  color: var(--accent);
 }

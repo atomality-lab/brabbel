@@ -2,6 +2,7 @@ const DEFAULT_BOARD_SIZE = 9;
 const RACK_SIZE = 7;
 const JOKER_TILE = "★";
 const JOKER_CHOICES = ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","R","S","T","U","V","W","X","Y","Z","Ä","Ö","Ü","ß","QU"];
+const BAG_DISPLAY_ORDER = ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","R","S","T","U","V","W","X","Y","Z","Ä","Ö","Ü","ß","QU",JOKER_TILE];
 
 const CLASSIC_BAGS = {
   9: {"E":10,"N":6,"I":4,"S":4,"R":4,"A":4,"T":3,"H":3,"D":3,"U":2,"L":2,"G":2,"C":1,"M":1,"O":1,"B":1,"W":1,"F":1,"K":1,"P":1,"V":1,"Z":1,"Ä":1,"Ö":1,"Ü":1,"ß":1,"QU":1,"★":1},
@@ -9,7 +10,7 @@ const CLASSIC_BAGS = {
   13: {"E":12,"N":7,"I":6,"S":6,"R":6,"A":5,"T":4,"H":4,"D":4,"U":4,"L":3,"C":2,"G":2,"M":2,"O":2,"B":2,"W":2,"F":2,"K":2,"P":2,"V":2,"Z":1,"Ä":1,"Ö":1,"Ü":1,"ß":1,"QU":1,"J":1,"X":1,"Y":1,"★":1}
 };
 
-const TARGET_BAG_TOTALS = {9:63, 11:77, 13:91};
+const TARGET_BAG_TOTALS = {9:56, 11:70, 13:84};
 const DEFAULT_JOKER_COUNTS = {9:1, 11:2, 13:2};
 const MAX_JOKER_COUNTS = {9:2, 11:3, 13:4};
 const VOWELS = ["A", "E", "I", "O", "U", "Ä", "Ö", "Ü"];
@@ -94,10 +95,20 @@ function getBaseBagConfig(size) {
   const source = CLASSIC_BAGS[size] || CLASSIC_BAGS[DEFAULT_BOARD_SIZE];
   const conf = {...source};
   delete conf[JOKER_TILE];
+  const target = getBagTotal(size);
   const fillers = ["E","N","I","S","R","A","T","D","H","U","L"];
+  const removalPool = ["E","N","I","S","R","A","T","D","H","U","L","C","G","M","O"];
   let total = Object.values(conf).reduce((a,b) => a + b, 0);
+  let guard = 0;
+  while (total > target && guard < 500) {
+    guard++;
+    for (const tile of removalPool) {
+      if (total <= target) break;
+      if ((conf[tile] || 0) > 1) { conf[tile]--; total--; }
+    }
+  }
   let i = 0;
-  while (total < getBagTotal(size)) {
+  while (total < target) {
     const tile = fillers[i % fillers.length];
     conf[tile] = (conf[tile] || 0) + 1;
     total++; i++;
@@ -356,6 +367,13 @@ function noteCurrentDuelTurnFinished() {
   const player = getCurrentPlayer();
   if (player) player.turns = (Number(player.turns) || 0) + 1;
 }
+function isCompletingDuelFinalTurn() {
+  return isDuelGame() && state.duelFinalTurnPlayerIndex !== undefined && Number(state.duelFinalTurnPlayerIndex) === Number(state.currentPlayerIndex || 0);
+}
+function clearDuelFinalTurn() {
+  delete state.duelFinalTurnPlayerIndex;
+  delete state.duelGiveUpReason;
+}
 function advanceDuelTurn() {
   if (!isDuelGame()) return;
   const current = Number(state.currentPlayerIndex) || 0;
@@ -368,7 +386,10 @@ function renderHandoff() {
   if (!isDuelGame()) return;
   const next = getCurrentPlayer();
   const handoff = state.handoff || {};
-  if ($("handoffText")) $("handoffText").textContent = `Jetzt ist ${next?.name || "der nächste Spieler"} am Zug. Bitte Tablet weitergeben und erst dann auf „Weiter“ tippen.`;
+  if ($("handoffText")) {
+    const defaultText = `Jetzt ist ${next?.name || "der nächste Spieler"} am Zug. Bitte Tablet weitergeben und erst dann auf „Weiter“ tippen.`;
+    $("handoffText").textContent = handoff.prompt || defaultText;
+  }
   if ($("handoffLastMove")) {
     const title = handoff.title || "Zug abgeschlossen";
     const text = handoff.text || "";
@@ -376,9 +397,9 @@ function renderHandoff() {
   }
   if ($("handoffScores")) $("handoffScores").innerHTML = state.players.map((p, i) => `<div class="duelScorePill ${i === Number(state.currentPlayerIndex || 0) ? "active" : ""}"><strong>${escapeHtml(p.name)}</strong><span>${Number(p.score) || 0} Pkt.</span></div>`).join("");
 }
-function showHandoffScreen(title, text) {
+function showHandoffScreen(title, text, prompt="") {
   if (!isDuelGame()) return;
-  state.handoff = {title, text};
+  state.handoff = {title, text, prompt};
   renderHandoff();
   showScreen("screen-handoff");
   saveAutosave();
@@ -593,7 +614,7 @@ function startNewGame() {
   };
   if (playMode === "duel") {
     state.players = duelNames.map((name, i) => ensureDuelPlayerShape({name, score: 0, rack: [], stats: createEmptyStats(), lastMove: null, turns: 0}, `Spieler ${i + 1}`));
-    state.currentPlayerIndex = 0;
+    state.currentPlayerIndex = Math.floor(Math.random() * state.players.length);
   }
   if (mode === "special" && specialLayoutType === "random") state.specialLayoutData = createRandomSpecialLayout(boardSize);
   state.board = emptyBoard(boardSize);
@@ -608,9 +629,14 @@ function startNewGame() {
     state.rack = drawRack([], true);
   }
   selectedRackIndex = null;
-  showScreen("screen-game");
-  renderGame();
-  saveAutosave();
+  if (isDuelGame()) {
+    const starter = getCurrentPlayer();
+    showHandoffScreen("Ausgelost!", `${starter?.name || "Du"}, du darfst beginnen!`, `${starter?.name || "Du"}, nimm dir das Tablet und tippe auf „Weiter“. Dann erscheinen deine Buchstaben.`);
+  } else {
+    showScreen("screen-game");
+    renderGame();
+    saveAutosave();
+  }
 }
 function placeSeedLetters(count) {
   let placed = 0, guard = 0;
@@ -721,7 +747,7 @@ function renderGame() {
   const giveUpAvailable = isGiveUpAvailable();
   $("giveUpBtn")?.classList.toggle("hidden", !giveUpAvailable);
   $("bottomGameControls")?.classList.toggle("hasGiveUp", giveUpAvailable);
-  renderBoard(); renderRack(); renderTurnStatus(); renderPreview(); renderLastMove();
+  renderBoard(); renderRack(); renderTurnStatus(); renderPreview(); renderLastMove(); renderBagLetters();
 }
 function getRoundStatusText() {
   if (!state) return "–";
@@ -1348,6 +1374,20 @@ function renderLastMove() {
   const details = d ? `<small>Buchstaben ${d.basePoints}, Länge +${d.lengthBonus}, Kombo +${d.comboBonus}, Überlegen +${d.replacementBonus}, Hand +${d.handBonus}</small><br>` : "";
   e.innerHTML = `<strong>Wörter:</strong> ${state.lastMove.words.map(escapeHtml).join(", ")}<br><strong>Verwendet:</strong> ${state.lastMove.usedLetters.map(escapeHtml).join(", ")}<br><strong>Punkte:</strong> +${state.lastMove.points}<br>${details}<strong>Gesamt:</strong> ${state.score}`;
 }
+function getBagLetterCounts() {
+  const counts = Object.fromEntries(BAG_DISPLAY_ORDER.map(tile => [tile, 0]));
+  if (state?.bag) state.bag.forEach(tile => { counts[tile] = (counts[tile] || 0) + 1; });
+  return counts;
+}
+function renderBagLetters() {
+  const panel = $("bagLettersPanel");
+  const out = $("bagLettersOut");
+  if (!panel || !out) return;
+  if (!state || !isClassicGame()) { panel.classList.add("hidden"); out.innerHTML = ""; return; }
+  panel.classList.remove("hidden");
+  const counts = getBagLetterCounts();
+  out.innerHTML = BAG_DISPLAY_ORDER.map(tile => `<span><strong>${escapeHtml(tile)}</strong>=${counts[tile] || 0}</span>`).join("");
+}
 function analyzeMove() {
   const changedCells = state.board.map((c,index) => ({...c,index})).filter(c => c.isNew || c.isReplacement), errors = [];
   if (!changedCells.length) return {changedCells, words: [], errors: ["Noch kein Buchstabe gelegt."], points: 0, unknown: []};
@@ -1574,6 +1614,13 @@ function finalizeMove(p) {
   if (isDuelGame()) {
     noteCurrentDuelTurnFinished();
     syncActivePlayerToPlayers();
+    if (isCompletingDuelFinalTurn()) {
+      const reason = state.duelGiveUpReason || "Der letzte Zug wurde gespielt.";
+      clearDuelFinalTurn();
+      finishGame(`${reason}
+${state.player} hat den letzten Zug gespielt.`);
+      return;
+    }
     advanceDuelTurn();
     saveAutosave();
     if (!checkGameEndAfterTurn()) showHandoffScreen(title, text);
@@ -1757,10 +1804,32 @@ Handsteine: ${hand}
 Handwert: ${penalty} Punkte
 
 Dieser Wert wird von deinem Gesamtstand abgezogen.`, "Ja, aufgeben", () => {
+    const givingUpName = state.player || "Spieler";
     state.score -= penalty;
-    state.lastMove = {words: ["Aufgegeben"], usedLetters: state.rack.filter(Boolean), points: -penalty, date: new Date().toISOString()};
-    if (isDuelGame()) syncActivePlayerToPlayers();
-    finishGame(`${state.player || "Du"} hat aufgegeben. Der Handwert wurde abgezogen: -${penalty} Punkte.`);
+    state.rack = Array.from({length: RACK_SIZE}, () => "");
+    state.lastMove = {words: ["Aufgegeben"], usedLetters: [], points: -penalty, date: new Date().toISOString()};
+
+    if (isDuelGame()) {
+      const currentIndex = Number(state.currentPlayerIndex || 0);
+      syncActivePlayerToPlayers();
+      if (isCompletingDuelFinalTurn()) {
+        const reason = state.duelGiveUpReason || `${givingUpName} hat aufgegeben.`;
+        clearDuelFinalTurn();
+        finishGame(`${reason}
+${givingUpName} hat ebenfalls aufgegeben. Der Handwert wurde abgezogen: -${penalty} Punkte.`);
+        return;
+      }
+      const nextIndex = (currentIndex + 1) % state.players.length;
+      state.duelFinalTurnPlayerIndex = nextIndex;
+      state.duelGiveUpReason = `${givingUpName} hat aufgegeben. Der Handwert wurde abgezogen: -${penalty} Punkte.`;
+      advanceDuelTurn();
+      saveAutosave();
+      const nextName = getCurrentPlayer()?.name || "der andere Spieler";
+      showHandoffScreen("Aufgegeben", `${givingUpName} hat aufgegeben und verliert ${penalty} Punkte. ${nextName} bekommt noch einen letzten Zug.`, `${nextName}, du bekommst noch einen letzten Zug. Bitte Tablet nehmen und mit „Weiter“ bestätigen.`);
+      return;
+    }
+
+    finishGame(`${givingUpName} hat aufgegeben. Der Handwert wurde abgezogen: -${penalty} Punkte.`);
   });
 }
 
@@ -1824,6 +1893,13 @@ function passTurn() {
     if (isDuelGame()) {
       noteCurrentDuelTurnFinished();
       syncActivePlayerToPlayers();
+      if (isCompletingDuelFinalTurn()) {
+        const reason = state.duelGiveUpReason || "Der letzte Zug wurde gespielt.";
+        clearDuelFinalTurn();
+        finishGame(`${reason}
+${state.player} hat gepasst. Das Spiel endet jetzt.`);
+        return;
+      }
       advanceDuelTurn();
       saveAutosave();
       if (!checkGameEndAfterTurn()) showHandoffScreen("Runde ausgesetzt", isClassicGame() ? "Gepasst und neue Buchstaben aus dem Beutel gezogen." : "Gepasst und 7 neue Buchstaben erhalten.");
