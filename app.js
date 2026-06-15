@@ -15,6 +15,12 @@ const DEFAULT_JOKER_COUNTS = {9:1, 11:2, 13:2};
 const MAX_JOKER_COUNTS = {9:2, 11:3, 13:4};
 const VOWELS = ["A", "E", "I", "O", "U", "Ä", "Ö", "Ü"];
 const PRAISES = ["Gut gemacht!", "Schön gelegt!", "Starker Zug!", "Prima gewandelt!", "Das sitzt!", "Feine Wortarbeit!"];
+const BONUS_MODE_NONE = "none";
+const BONUS_MODE_LUCK = "luck";
+const LUCK_GREEN_CHANCE = 0.07;
+const LUCK_GOLD_CHANCE = 0.015;
+const LUCK_GREEN_POOL = [{type:"plus", value:1, weight:50}, {type:"plus", value:2, weight:35}, {type:"mult", value:2, weight:15}];
+const LUCK_GOLD_POOL = [{type:"plus", value:5, weight:65}, {type:"mult", value:3, weight:35}];
 
 const LETTER_WEIGHTS = [
   ["E",174],["N",98],["I",75],["S",73],["R",70],["A",65],["T",61],["H",55],["D",51],["U",41],
@@ -32,22 +38,103 @@ const LETTER_POINTS = {
   "Y":8, "ß":8, "★":0
 };
 
+function getTileLetter(tile) {
+  if (!tile) return "";
+  if (typeof tile === "object") return String(tile.letter || "");
+  return String(tile);
+}
+function cloneLucky(lucky) {
+  return lucky ? {...lucky} : null;
+}
+function getTileLucky(tile) {
+  return tile && typeof tile === "object" ? cloneLucky(tile.lucky) : null;
+}
+function makeTile(letter, lucky=null) {
+  const base = getTileLetter(letter);
+  return lucky ? {letter: base, lucky: cloneLucky(lucky)} : base;
+}
+function stripTileLuck(tile) {
+  return getTileLetter(tile);
+}
+function sameTileLetter(tile, letter) {
+  return getTileLetter(tile) === getTileLetter(letter);
+}
+function countRackLetter(rack, letter) {
+  return (rack || []).filter(t => t && sameTileLetter(t, letter)).length;
+}
 function isJokerTile(tile) {
-  return tile === JOKER_TILE;
+  return getTileLetter(tile) === JOKER_TILE;
 }
 function getTilePoints(tile) {
-  if (isJokerTile(tile)) return 0;
-  return LETTER_POINTS[tile] || 1;
+  const letter = getTileLetter(tile);
+  if (isJokerTile(letter)) return 0;
+  return LETTER_POINTS[letter] || 1;
+}
+function getLuckyAdjustedPoints(letter, lucky) {
+  const base = getTilePoints(letter);
+  if (!lucky) return base;
+  if (lucky.type === "plus") return base + Number(lucky.value || 0);
+  if (lucky.type === "mult") return base * Number(lucky.value || 1);
+  return base;
+}
+function getDisplayedTilePoints(tile) {
+  const lucky = getTileLucky(tile);
+  return lucky ? getLuckyAdjustedPoints(tile, lucky) : getTilePoints(tile);
 }
 function getCellTilePoints(cell) {
   if (!cell || cell.joker) return 0;
-  return getTilePoints(cell.letter);
+  const base = getTilePoints(cell.letter);
+  if (cell.lucky && (cell.isNew || cell.isReplacement)) return getLuckyAdjustedPoints(cell.letter, cell.lucky);
+  return base;
 }
 function displayTile(tile) {
-  return isJokerTile(tile) ? "★" : tile;
+  const letter = getTileLetter(tile);
+  return isJokerTile(letter) ? "★" : letter;
+}
+function luckyShortLabel(lucky) {
+  if (!lucky) return "";
+  return lucky.type === "mult" ? `×${lucky.value}` : `+${lucky.value}`;
+}
+function luckyColorLabel(lucky) {
+  if (!lucky) return "";
+  return lucky.color === "gold" ? "goldener Glücksstein" : "grüner Glücksstein";
+}
+function formatLuckyTile(tile) {
+  const letter = displayTile(tile);
+  const lucky = getTileLucky(tile);
+  return lucky ? `${letter} ${luckyShortLabel(lucky)}` : letter;
 }
 function formatCellLetter(cell) {
-  return cell?.joker ? `${cell.letter}★` : cell?.letter || "";
+  if (!cell?.letter) return "";
+  const base = cell.joker ? `${cell.letter}★` : cell.letter;
+  return cell.lucky && (cell.isNew || cell.isReplacement) ? `${base} ${luckyShortLabel(cell.lucky)}` : base;
+}
+function isBonusModeLuck(gameState=state) {
+  return gameState?.bonusMode === BONUS_MODE_LUCK;
+}
+function weightedObjectChoice(pool) {
+  const total = pool.reduce((sum, item) => sum + (Number(item.weight) || 0), 0);
+  let r = Math.random() * total;
+  for (const item of pool) {
+    r -= Number(item.weight) || 0;
+    if (r <= 0) return item;
+  }
+  return pool[0];
+}
+function maybeMakeLuckyTile(tile) {
+  const letter = getTileLetter(tile);
+  if (!isBonusModeLuck() || !state?.allowLuckyForNextDraw || !letter || isJokerTile(letter)) return letter;
+  const r = Math.random();
+  if (r < LUCK_GOLD_CHANCE) return makeTile(letter, {...weightedObjectChoice(LUCK_GOLD_POOL), color:"gold"});
+  if (r < LUCK_GOLD_CHANCE + LUCK_GREEN_CHANCE) return makeTile(letter, {...weightedObjectChoice(LUCK_GREEN_POOL), color:"green"});
+  return letter;
+}
+function drawRackWithLuckAllowed(existing, req=false) {
+  const previous = !!state?.allowLuckyForNextDraw;
+  if (state) state.allowLuckyForNextDraw = isBonusModeLuck();
+  const rack = drawRack(existing, req);
+  if (state) state.allowLuckyForNextDraw = previous;
+  return rack;
 }
 
 function getWordLengthBonus(length) {
@@ -157,7 +244,7 @@ function drawTileFromBag(prefer) {
   if (!candidates.length) candidates = state.bag.map((tile, idx) => ({tile, idx}));
   const pick = candidates[Math.floor(Math.random() * candidates.length)];
   const [tile] = state.bag.splice(pick.idx, 1);
-  return tile;
+  return maybeMakeLuckyTile(tile);
 }
 function drawRackFromBag(existing) {
   const rack = existing.filter(Boolean).slice(0, RACK_SIZE);
@@ -337,6 +424,10 @@ function prepareNewGameForm() {
 function describePlayMode(gameState=state) {
   return isDuelGame(gameState) ? "Zu zweit" : "Einzel";
 }
+function describeBonusMode(gameState=state) {
+  if (gameState?.bonusMode === BONUS_MODE_LUCK) return "Glückssteine";
+  return "Ohne Extras";
+}
 function getDuelScoresText(gameState=state) {
   if (!isDuelGame(gameState)) return "";
   const copy = gameState === state ? JSON.parse(JSON.stringify(gameState)) : gameState;
@@ -425,7 +516,8 @@ function getSaveModeText(gameState) {
   const size = gameState?.boardSize || 9;
   const mode = gameState?.playMode === "duel" ? "Zu zweit" : "Einzel";
   const round = gameState?.round || 1;
-  return `${mode} · Runde ${round} · ${size}×${size}`;
+  const bonus = gameState?.bonusMode === BONUS_MODE_LUCK ? " · Glückssteine" : "";
+  return `${mode} · Runde ${round} · ${size}×${size}${bonus}`;
 }
 
 function init() {
@@ -590,7 +682,7 @@ function emptyBoard(size=getBoardSize()) {
   const center = getCenterIndex(size);
   return Array.from({length: size * size}, (_, i) => ({
     letter: "", previousLetter: "", isNew: false, isReplacement: false, center: i === center,
-    bonus: getSpecialBonusForIndex(i, size), bonusUsed: false, joker: false, previousJoker: false, settled: false
+    bonus: getSpecialBonusForIndex(i, size), bonusUsed: false, joker: false, previousJoker: false, lucky: null, previousLucky: null, settled: false
   }));
 }
 function startNewGame() {
@@ -601,11 +693,12 @@ function startNewGame() {
   const roundLimit = clamp(Number($("roundLimitInput").value) || 30, 10, 100);
   const specialLayoutType = mode === "special" ? getSelectedSpecialLayoutType() : "";
   const jokerCount = getSelectedJokerCount(boardSize);
+  const bonusMode = $("bonusModeSelect")?.value || BONUS_MODE_NONE;
   const duelNames = playMode === "duel" ? getDuelPlayerNames() : [];
   if (playMode === "duel") saveDuelPlayerNames(duelNames);
   state = {
     player: localStorage.getItem(K.player) || "Spieler",
-    playMode, mode, boardSize, endMode, roundLimit, specialLayoutType, jokerCount,
+    playMode, mode, boardSize, endMode, roundLimit, specialLayoutType, jokerCount, bonusMode,
     score: 0, round: 1, firstSuccessfulMove: false,
     board: [], rack: [], bag: endMode === "classic" ? createClassicBag(boardSize, jokerCount) : null,
     lastMove: null, startedAt: new Date().toISOString(), savedAt: null,
@@ -645,12 +738,12 @@ function placeSeedLetters(count) {
     const idx = Math.floor(Math.random() * state.board.length);
     if (state.board[idx].letter) continue;
     if (neighbors(idx).some(n => state.board[n]?.letter)) continue;
-    state.board[idx].letter = isClassicGame() ? drawTileFromBag("any") : drawLetterWithLimits([]);
+    state.board[idx].letter = stripTileLuck(isClassicGame() ? drawTileFromBag("any") : drawLetterWithLimits([]));
     placed++;
   }
 }
 function isVowelTile(tile) {
-  return VOWELS.includes(tile);
+  return VOWELS.includes(getTileLetter(tile));
 }
 
 function isValidRackDistribution(rack) {
@@ -659,7 +752,7 @@ function isValidRackDistribution(rack) {
   const vowels = filled.filter(isVowelTile).length;
   const consonants = filled.filter(t => t && !isVowelTile(t) && !isJokerTile(t)).length;
   const counts = {};
-  for (const tile of filled) counts[tile] = (counts[tile] || 0) + 1;
+  for (const tile of filled) { const key = getTileLetter(tile); counts[key] = (counts[key] || 0) + 1; }
   const maxSame = Math.max(...Object.values(counts));
   return vowels >= 1 && consonants >= 2 && vowels <= 4 && maxSame <= 3;
 }
@@ -681,7 +774,7 @@ function drawRack(existing, req=false) {
   const rack = fixed.slice();
   while (rack.length < RACK_SIZE) {
     const vowels = rack.filter(isVowelTile).length;
-    const consonants = rack.length - vowels;
+    const consonants = rack.filter(t => t && !isVowelTile(t) && !isJokerTile(t)).length;
     let next;
     if (consonants < 2) next = drawConsonantWithLimits(rack);
     else if (vowels < 1) next = drawVowelWithLimits(rack);
@@ -695,7 +788,7 @@ function drawRack(existing, req=false) {
 function drawVowelWithLimits(rack) {
   for (let i = 0; i < 100; i++) {
     const l = VOWELS[Math.floor(Math.random() * VOWELS.length)];
-    if (rack.filter(x => x === l).length < 3) return l;
+    if (countRackLetter(rack, l) < 3) return maybeMakeLuckyTile(l);
   }
   return "E";
 }
@@ -704,7 +797,7 @@ function drawConsonantWithLimits(rack) {
   for (let i = 0; i < 200; i++) {
     const l = weightedChoice();
     if (isVowelTile(l)) continue;
-    if (rack.filter(x => x === l).length < 3) return l;
+    if (countRackLetter(rack, l) < 3) return maybeMakeLuckyTile(l);
   }
   return "N";
 }
@@ -722,7 +815,7 @@ function drawLetterWithLimits(rack) {
     g++;
     const joker = maybeDrawJokerForRack(rack);
     const l = joker || weightedChoice();
-    if (rack.filter(x => x === l).length < 3) return l;
+    if (countRackLetter(rack, l) < 3) return maybeMakeLuckyTile(l);
   }
   return "E";
 }
@@ -741,8 +834,8 @@ function renderGame() {
   $("scoreOut").textContent = state.score;
   $("roundOut").textContent = state.round;
   $("gameSubtitle").textContent = isDuelGame()
-    ? `${describePlayMode()} · Am Zug: ${state.player} · ${describeBoardMode(state.mode)} · ${getBoardSize()}×${getBoardSize()} · ${describeEndMode()}`
-    : `${describeBoardMode(state.mode)} · ${getBoardSize()}×${getBoardSize()} · ${describeEndMode()}`;
+    ? `${describePlayMode()} · Am Zug: ${state.player} · ${describeBoardMode(state.mode)} · ${getBoardSize()}×${getBoardSize()} · ${describeEndMode()} · ${describeBonusMode()}`
+    : `${describeBoardMode(state.mode)} · ${getBoardSize()}×${getBoardSize()} · ${describeEndMode()} · ${describeBonusMode()}`;
   renderDuelScorePanel();
   const giveUpAvailable = isGiveUpAvailable();
   $("giveUpBtn")?.classList.toggle("hidden", !giveUpAvailable);
@@ -806,6 +899,7 @@ function renderBoard() {
     if (cell.bonus) b.classList.add("bonus", `bonus-${cell.bonus.toLowerCase()}`);
     if (cell.bonusUsed) b.classList.add("bonusUsed");
     if (cell.joker) b.classList.add("jokerCell");
+    if (cell.lucky && (cell.isNew || cell.isReplacement)) b.classList.add("luckyTile", `lucky-${cell.lucky.color || "green"}`);
     if (cell.letter) b.classList.add("filled");
     if (cell.letter && cell.settled) b.classList.add("settled");
     if (selectedRackIndex !== null) b.classList.add("selectable");
@@ -818,8 +912,19 @@ function renderBoard() {
 
       const points = document.createElement("span");
       points.className = "tilePoints";
-      points.textContent = cell.joker ? 0 : getTilePoints(cell.letter);
+      points.textContent = cell.joker ? 0 : getCellTilePoints(cell);
       b.appendChild(points);
+
+      if (cell.lucky && (cell.isNew || cell.isReplacement)) {
+        const luckyMark = document.createElement("span");
+        luckyMark.className = "luckyMark";
+        luckyMark.textContent = "🍀";
+        b.appendChild(luckyMark);
+        const luckyValue = document.createElement("span");
+        luckyValue.className = "luckyValue";
+        luckyValue.textContent = luckyShortLabel(cell.lucky);
+        b.appendChild(luckyValue);
+      }
 
       if (cell.joker) {
         const mark = document.createElement("span");
@@ -930,7 +1035,10 @@ function updateRackDragGhost(tile, x, y) {
     document.body.appendChild(ghost);
   }
   ghost.querySelector('.tileLetter').textContent = displayTile(tile);
-  ghost.querySelector('.tilePoints').textContent = getTilePoints(tile);
+  ghost.querySelector('.tilePoints').textContent = getDisplayedTilePoints(tile);
+  ghost.classList.toggle('luckyTile', !!getTileLucky(tile));
+  ghost.classList.toggle('lucky-gold', getTileLucky(tile)?.color === 'gold');
+  ghost.classList.toggle('lucky-green', getTileLucky(tile)?.color === 'green');
   ghost.style.left = `${x}px`;
   ghost.style.top = `${y}px`;
 }
@@ -962,8 +1070,11 @@ function updateBoardDragGhost(cell, x, y) {
     document.body.appendChild(ghost);
   }
   ghost.querySelector('.tileLetter').textContent = cell.letter;
-  ghost.querySelector('.tilePoints').textContent = cell.joker ? 0 : getTilePoints(cell.letter);
+  ghost.querySelector('.tilePoints').textContent = cell.joker ? 0 : getCellTilePoints(cell);
   ghost.classList.toggle('jokerTile', !!cell.joker);
+  ghost.classList.toggle('luckyTile', !!cell.lucky);
+  ghost.classList.toggle('lucky-gold', cell.lucky?.color === 'gold');
+  ghost.classList.toggle('lucky-green', cell.lucky?.color === 'green');
   ghost.style.left = `${x}px`;
   ghost.style.top = `${y}px`;
 }
@@ -976,16 +1087,22 @@ function restoreMovedSourceCell(cell) {
   if (cell.isReplacement) {
     cell.letter = cell.previousLetter;
     cell.joker = !!cell.previousJoker;
+    cell.lucky = cloneLucky(cell.previousLucky);
     cell.previousLetter = "";
     cell.previousJoker = false;
+    cell.previousLucky = null;
+    cell.previousLucky = null;
     cell.isReplacement = false;
     cell.isNew = false;
     cell.settled = true;
   } else {
     cell.letter = "";
     cell.joker = false;
+    cell.lucky = null;
     cell.previousLetter = "";
     cell.previousJoker = false;
+    cell.previousLucky = null;
+    cell.previousLucky = null;
     cell.isNew = false;
     cell.isReplacement = false;
     cell.settled = false;
@@ -1003,6 +1120,7 @@ function moveBoardTile(fromIndex, toIndex) {
 
   const movedLetter = source.letter;
   const movedJoker = !!source.joker;
+  const movedLucky = cloneLucky(source.lucky);
 
   if (target.letter) {
     if (!state.firstSuccessfulMove) { message("Noch nicht möglich", "Buchstaben dürfen erst ab Runde 2 überlegt werden."); return; }
@@ -1014,18 +1132,22 @@ function moveBoardTile(fromIndex, toIndex) {
   if (target.letter) {
     target.previousLetter = target.letter;
     target.previousJoker = !!target.joker;
+    target.previousLucky = cloneLucky(target.lucky);
     target.letter = movedLetter;
     target.joker = movedJoker;
+    target.lucky = movedJoker ? null : movedLucky;
     target.isReplacement = true;
     target.isNew = false;
   } else {
     target.letter = movedLetter;
     target.joker = movedJoker;
+    target.lucky = movedJoker ? null : movedLucky;
     target.settled = false;
     target.isNew = true;
     target.isReplacement = false;
     target.previousLetter = "";
     target.previousJoker = false;
+    target.previousLucky = null;
   }
 
   selectedRackIndex = null;
@@ -1126,10 +1248,10 @@ function sortRack(mode) {
   if (!state) return;
   const letters = state.rack.filter(Boolean);
   const empties = Array.from({length: RACK_SIZE - letters.length}, () => "");
-  const alpha = (a, b) => a.localeCompare(b, "de", {sensitivity: "base"});
+  const alpha = (a, b) => getTileLetter(a).localeCompare(getTileLetter(b), "de", {sensitivity: "base"});
 
   if (mode === "points") {
-    letters.sort((a, b) => (getTilePoints(b) - getTilePoints(a)) || alpha(a, b));
+    letters.sort((a, b) => (getDisplayedTilePoints(b) - getDisplayedTilePoints(a)) || alpha(a, b));
   } else if (mode === "vowels") {
     letters.sort((a, b) => {
       const av = isVowelTile(a) ? 0 : 1;
@@ -1153,7 +1275,7 @@ function shuffleRack() {
   let shuffled = letters.slice();
   for (let attempt = 0; attempt < 12; attempt++) {
     shuffled = shuffleArray(letters);
-    if (shuffled.join("|") !== letters.join("|")) break;
+    if (shuffled.map(getTileLetter).join("|") !== letters.map(getTileLetter).join("|")) break;
   }
   state.rack = shuffled.concat(empties);
   selectedRackIndex = null;
@@ -1170,6 +1292,11 @@ function renderRack() {
     if (selectedRackIndex === idx) b.classList.add("active");
     if (!l) b.classList.add("used");
     if (isJokerTile(l)) b.classList.add("jokerTile");
+    const lucky = getTileLucky(l);
+    if (lucky) {
+      b.classList.add("luckyTile", `lucky-${lucky.color || "green"}`);
+      b.title = `${luckyColorLabel(lucky)}: ${luckyShortLabel(lucky)} auf diesen Buchstaben`;
+    }
 
     if (l) {
       const letter = document.createElement("span");
@@ -1179,8 +1306,19 @@ function renderRack() {
 
       const points = document.createElement("span");
       points.className = "tilePoints";
-      points.textContent = getTilePoints(l);
+      points.textContent = getDisplayedTilePoints(l);
       b.appendChild(points);
+
+      if (lucky) {
+        const luckyMark = document.createElement("span");
+        luckyMark.className = "luckyMark";
+        luckyMark.textContent = "🍀";
+        b.appendChild(luckyMark);
+        const luckyValue = document.createElement("span");
+        luckyValue.className = "luckyValue";
+        luckyValue.textContent = luckyShortLabel(lucky);
+        b.appendChild(luckyValue);
+      }
     } else {
       b.textContent = " ";
     }
@@ -1244,22 +1382,29 @@ function boardClick(idx) {
 
 function placeTileOnBoard(idx, rackIndex, chosen, isJoker=false) {
   const cell = state.board[idx];
+  const chosenLetter = getTileLetter(chosen);
+  const chosenLucky = isJoker ? null : getTileLucky(chosen);
   if (!cell.letter) {
-    cell.letter = chosen;
+    cell.letter = chosenLetter;
     cell.joker = isJoker;
+    cell.lucky = chosenLucky;
     cell.settled = false;
     cell.isNew = true;
     cell.isReplacement = false;
     cell.previousLetter = "";
     cell.previousJoker = false;
+    cell.previousLucky = null;
+    cell.previousLucky = null;
   } else {
     if (!state.firstSuccessfulMove) { message("Noch nicht möglich", "Buchstaben dürfen erst ab Runde 2 überlegt werden."); return; }
     if (cell.isNew || cell.isReplacement) { message("Schon geändert", "Tippe den gelegten Buchstaben ohne ausgewählten Handstein an, um ihn zurückzulegen."); return; }
-    if (cell.letter === chosen) { message("Nicht erlaubt", "Ein Buchstabe darf nicht durch denselben Buchstaben ersetzt werden."); return; }
+    if (cell.letter === chosenLetter) { message("Nicht erlaubt", "Ein Buchstabe darf nicht durch denselben Buchstaben ersetzt werden."); return; }
     cell.previousLetter = cell.letter;
     cell.previousJoker = !!cell.joker;
-    cell.letter = chosen;
+    cell.previousLucky = cloneLucky(cell.lucky);
+    cell.letter = chosenLetter;
     cell.joker = isJoker;
+    cell.lucky = chosenLucky;
     cell.isReplacement = true;
     cell.isNew = false;
   }
@@ -1313,17 +1458,21 @@ function returnSingleTile(idx) {
   const cell = state.board[idx];
   const empty = state.rack.indexOf("");
   if (empty < 0) { message("Ablage voll", "Es ist gerade kein freier Platz in der Buchstabenleiste vorhanden."); return; }
-  const returned = cell.joker ? JOKER_TILE : cell.letter;
+  const returned = cell.joker ? JOKER_TILE : makeTile(cell.letter, cell.lucky);
   state.rack[empty] = returned;
   if (cell.isReplacement) {
     cell.letter = cell.previousLetter;
     cell.joker = !!cell.previousJoker;
+    cell.lucky = cloneLucky(cell.previousLucky);
     cell.previousLetter = "";
     cell.previousJoker = false;
+    cell.previousLucky = null;
+    cell.previousLucky = null;
     cell.isReplacement = false;
   } else {
     cell.letter = "";
     cell.joker = false;
+    cell.lucky = null;
     cell.settled = false;
     cell.isNew = false;
   }
@@ -1353,7 +1502,7 @@ function renderScoreDetails(d, points) {
   const longest = d.longestWord ? ` (${escapeHtml(d.longestWord)})` : "";
   return `
     <div class="scoreDetails">
-      <div><span>Wortpunkte</span><strong>${d.basePoints}</strong></div>${d.specialText ? `<div><span>Sonderfelder</span><strong>${escapeHtml(d.specialText)}</strong></div>` : ""}
+      <div><span>Wortpunkte</span><strong>${d.basePoints}</strong></div>${d.luckText ? `<div><span>Glückssteine</span><strong>${escapeHtml(d.luckText)}</strong></div>` : ""}${d.specialText ? `<div><span>Sonderfelder</span><strong>${escapeHtml(d.specialText)}</strong></div>` : ""}
       <div><span>Längenbonus${longest}</span><strong>+${d.lengthBonus}</strong></div>
       <div><span>Kombobonus</span><strong>+${d.comboBonus}</strong></div>
       <div><span>Überlegebonus</span><strong>+${d.replacementBonus}</strong></div>
@@ -1371,12 +1520,12 @@ function renderLastMove() {
   }
   e.className = "lastMove";
   const d = state.lastMove.scoreDetails;
-  const details = d ? `<small>Buchstaben ${d.basePoints}, Länge +${d.lengthBonus}, Kombo +${d.comboBonus}, Überlegen +${d.replacementBonus}, Hand +${d.handBonus}</small><br>` : "";
+  const details = d ? `<small>Buchstaben ${d.basePoints}${d.luckText ? `, Glück ${escapeHtml(d.luckText)}` : ""}, Länge +${d.lengthBonus}, Kombo +${d.comboBonus}, Überlegen +${d.replacementBonus}, Hand +${d.handBonus}</small><br>` : "";
   e.innerHTML = `<strong>Wörter:</strong> ${state.lastMove.words.map(escapeHtml).join(", ")}<br><strong>Verwendet:</strong> ${state.lastMove.usedLetters.map(escapeHtml).join(", ")}<br><strong>Punkte:</strong> +${state.lastMove.points}<br>${details}<strong>Gesamt:</strong> ${state.score}`;
 }
 function getBagLetterCounts() {
   const counts = Object.fromEntries(BAG_DISPLAY_ORDER.map(tile => [tile, 0]));
-  if (state?.bag) state.bag.forEach(tile => { counts[tile] = (counts[tile] || 0) + 1; });
+  if (state?.bag) state.bag.forEach(tile => { const key = getTileLetter(tile); counts[key] = (counts[key] || 0) + 1; });
   return counts;
 }
 function renderBagLetters() {
@@ -1460,6 +1609,9 @@ function scanWord(index, dr, dc) {
 
 function calculateScoreDetails(words, changedCells) {
   const changedSet = new Set(changedCells.map(c => c.index));
+  const luckyDetails = changedCells
+    .filter(c => c.lucky && !c.joker)
+    .map(c => `${c.letter} ${luckyShortLabel(c.lucky)} (${getTilePoints(c.letter)}→${getLuckyAdjustedPoints(c.letter, c.lucky)})`);
   const wordDetails = words.map(w => {
     let letterPoints = 0;
     let wordMultiplier = 1;
@@ -1496,6 +1648,7 @@ function calculateScoreDetails(words, changedCells) {
   const handBonus = changedCells.length === 7 ? 20 : 0;
   const total = basePoints + lengthBonus + comboBonus + replacementBonus + handBonus;
   const specialText = wordDetails.flatMap(w => w.specialBonuses).join(", ");
+  const luckText = luckyDetails.join(", ");
 
   return {
     wordDetails,
@@ -1507,6 +1660,7 @@ function calculateScoreDetails(words, changedCells) {
     replacementBonus,
     handBonus,
     specialText,
+    luckText,
     total
   };
 }
@@ -1526,6 +1680,7 @@ function formatMoveScoreBreakdown(d, total) {
     `Handbonus: +${d.handBonus || 0}`
   ];
   if (d.specialText) lines.splice(2, 0, `Sonderfelder: ${d.specialText}`);
+  if (d.luckText) lines.splice(2, 0, `Glückssteine: ${d.luckText}`);
   return `Du erhältst ${total || 0} Punkte.\n\nAufschlüsselung:\n${lines.join("\n")}`;
 }
 
@@ -1600,15 +1755,17 @@ function finalizeMove(p) {
   for (const cell of state.board) {
     if (cell.isNew || cell.isReplacement) cell.settled = true;
     if ((cell.isNew || cell.isReplacement) && cell.bonus && !cell.bonusUsed) cell.bonusUsed = true;
+    if (cell.isNew || cell.isReplacement) cell.lucky = null;
     cell.isNew = false;
     cell.isReplacement = false;
     cell.previousLetter = "";
     cell.previousJoker = false;
+    cell.previousLucky = null;
   }
   state.firstSuccessfulMove = true;
   const title = getMovePraiseTitle(p.points);
   const text = formatMoveSuccessText(p);
-  state.rack = drawRack(state.rack, false);
+  state.rack = drawRackWithLuckAllowed(state.rack, false);
   selectedRackIndex = null;
 
   if (isDuelGame()) {
@@ -1797,7 +1954,7 @@ function isGiveUpAvailable() {
 function giveUpGame() {
   if (!state) return;
   const penalty = getRackPenalty();
-  const hand = state.rack.filter(Boolean).join(", ") || "keine";
+  const hand = state.rack.filter(Boolean).map(formatLuckyTile).join(", ") || "keine";
   confirmDialog("Aufgeben", `Möchtest du das Spiel jetzt aufgeben?
 
 Handsteine: ${hand}
@@ -1873,7 +2030,7 @@ function undoTurn(silent=false) {
   }
   for (let i = changed.length - 1; i >= 0; i--) {
     const c = changed[i], empty = state.rack.indexOf("");
-    if (empty >= 0) state.rack[empty] = c.letter;
+    if (empty >= 0) state.rack[empty] = c.joker ? JOKER_TILE : makeTile(c.letter, c.lucky);
     const cell = state.board[c.index];
     if (cell.isReplacement) { cell.letter = cell.previousLetter; cell.previousLetter = ""; cell.isReplacement = false; }
     else { cell.letter = ""; cell.isNew = false; }
@@ -1885,8 +2042,8 @@ function passTurn() {
   const changed = state.board.some(c => c.isNew || c.isReplacement);
   const doPass = () => {
     undoTurn(true);
-    if (isClassicGame()) { state.bag = shuffleArray((state.bag || []).concat(state.rack.filter(Boolean))); state.rack = drawRack([], true); }
-    else state.rack = drawRack([], true);
+    if (isClassicGame()) { state.bag = shuffleArray((state.bag || []).concat(state.rack.filter(Boolean).map(stripTileLuck))); state.rack = drawRackWithLuckAllowed([], true); }
+    else state.rack = drawRackWithLuckAllowed([], true);
     state.lastMove = {words: ["Passe"], usedLetters: [], points: 0, date: new Date().toISOString()};
     selectedRackIndex = null;
 

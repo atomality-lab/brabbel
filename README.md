@@ -444,3 +444,16 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 - Klassische Beutelgrößen reduziert: 9×9 = 56 Steine, 11×11 = 70 Steine, 13×13 = 84 Steine.
 - In der Infoansicht wird im klassischen Modus unter „Letzter Zug“ angezeigt, welche Buchstaben noch im Beutel sind.
 
+
+
+
+## Neu in v5.43
+
+- Extras-Auswahl im Menü „Neues Spiel“ ergänzt: Ohne Extras oder Glückssteine.
+- Glückssteine können ab dem Nachziehen nach der ersten eigenen Runde erscheinen.
+- Grüne Glückssteine bringen +1, +2 oder ×2 auf den Buchstabenwert.
+- Goldene Glückssteine bringen +5 oder ×3 auf den Buchstabenwert und sind seltener.
+- Joker können keine Glückssteine sein.
+- Glückssteine behalten ihre Funktion, wenn sie vor Zugabschluss wieder auf die Hand genommen werden.
+- Nach einem gültigen Zug wird die Glücksfunktion verbraucht; der Stein zählt später wieder normal.
+- Zugvorschau, Zugabschluss und letzter Zug zeigen Glücksstein-Boni mit an.

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"><meta name="theme-color" content="#0f766e"><title>Brabbel v5.42</title><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="stylesheet" href="styles.css"></head>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"><meta name="theme-color" content="#0f766e"><title>Brabbel v5.43</title><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="stylesheet" href="styles.css"></head>
 <body><div id="app">
 <section id="screen-welcome" class="screen active"><div class="card hero"><h1>Brabbel</h1><p class="lead">Ein ruhiges Wortspiel fürs Tablet: legen, wandeln, prüfen, weiterspielen.</p><label class="biglabel">Spielername<input id="playerNameInput" maxlength="24" placeholder="Name eingeben"></label><button id="savePlayerBtn" class="primary wide">Weiter</button></div></section>
 <section id="screen-menu" class="screen"><div class="card hero"><h1>Brabbel</h1><p id="helloLine" class="lead"></p><div class="menuButtons"><button id="newGameMenuBtn" class="primary wide">Neues Spiel</button><button id="continueMenuBtn" class="wide">Spiel fortsetzen</button><button id="leaderboardMenuBtn" class="wide">Bestenliste</button><button id="lexiconMenuBtn" class="wide">Wortschatz</button>
@@ -14,6 +14,7 @@
 <label class="biglabel">Spielende<select id="endModeSelect"><option value="endless">Endlos · du bestimmst das Ende</option><option value="rounds">Rundenbasiert</option><option value="classic">Klassisch · begrenzter Buchstabenbeutel</option></select></label>
 <label id="roundLimitWrap" class="biglabel hidden">Anzahl Runden<input id="roundLimitInput" type="number" min="10" max="100" value="30"></label>
 <label id="jokerCountWrap" class="biglabel">Joker im Spiel<select id="jokerCountSelect"></select></label>
+<label class="biglabel">Extras<select id="bonusModeSelect"><option value="none">Ohne Extras</option><option value="luck" selected>Glückssteine</option></select></label>
 <p class="muted startHint">Bei „Klassisch“ endet das Spiel automatisch erst, wenn der Buchstabenbeutel leer ist und keine Handsteine mehr übrig sind.</p>
 <div class="actions"><button id="startGameBtn" class="primary">Spiel starten</button><button data-go="screen-menu">Zurück</button></div></div></section>
 <section id="screen-slots" class="screen"><div class="card"><h1>Spiel fortsetzen</h1><div id="slotList" class="slotList"></div><div class="actions"><button data-go="screen-menu">Zurück</button></div></div></section>
@@ -122,7 +123,7 @@
           <tr><td>8</td><td>Y ß</td></tr><tr><td>0</td><td>★ Joker</td></tr>
         </tbody></table></div>
 
-        <h2>Joker und Sonderfelder</h2><ul><li>Der Joker ★ zählt als gewählter Buchstabe, bringt aber 0 Punkte.</li><li>Beim Ablegen des Jokers wählst du den Buchstaben aus, auch QU ist möglich.</li><li>2B/3B verdoppeln oder verdreifachen den Buchstabenwert.</li><li>2W/3W verdoppeln oder verdreifachen den Wortwert.</li></ul><h2>Boni</h2>
+        <h2>Joker und Sonderfelder</h2><ul><li>Der Joker ★ zählt als gewählter Buchstabe, bringt aber 0 Punkte.</li><li>Beim Ablegen des Jokers wählst du den Buchstaben aus, auch QU ist möglich.</li><li>2B/3B verdoppeln oder verdreifachen den Buchstabenwert.</li><li>2W/3W verdoppeln oder verdreifachen den Wortwert.</li></ul><h2>Glückssteine</h2><ul><li>Wenn du im Menü „Glückssteine“ aktivierst, können ab dem Nachziehen nach deinem ersten Zug besondere Handsteine erscheinen.</li><li>Glückssteine sind normale Buchstaben mit Kleeblatt. Joker können keine Glückssteine sein.</li><li>Grüne Glückssteine bringen +1, +2 oder ×2 auf den Buchstabenwert. Goldene Glückssteine bringen +5 oder ×3.</li><li>Ein Glücksstein behält seine Funktion, solange du ihn vor dem Zugabschluss wieder zurück auf die Hand nimmst.</li><li>Nach einem gültigen Zug wird die Glücksfunktion verbraucht. Später zählt der Buchstabe wieder normal.</li></ul><h2>Boni</h2>
         <ul>
           <li><strong>Längenbonus:</strong> Nur das längste Wort des Zuges erhält den Bonus: 5 Buchstaben +3, 6 +6, 7 +12, 8 +16, ab 9 +20.</li>
           <li><strong>Handbonus:</strong> Wenn du alle 7 Handsteine in einem Zug nutzt, bekommst du +20 Punkte.</li>
@@ -137,7 +138,7 @@
     <section id="screen-about" class="screen">
       <div class="card wideCard infoPage">
         <h1>Über Brabbel</h1>
-        <div class="aboutHero"><strong>Brabbel v5.42</strong><span>Stand: 14.06.2026</span><span>Erstellt von Atomality</span></div>
+        <div class="aboutHero"><strong>Brabbel v5.43</strong><span>Stand: 15.06.2026</span><span>Erstellt von Atomality</span></div>
 
         <h2>Was ist Brabbel?</h2>
         <p>Brabbel ist ein deutschsprachiges Wortspiel fürs Tablet. Es ist als ruhiges, gut lesbares Spiel mit großen Bedienelementen gedacht.</p>
@@ -162,6 +163,9 @@
           <tr><td>6</td><td>J X QU</td></tr>
           <tr><td>8</td><td>Y ß</td></tr><tr><td>0</td><td>★ Joker</td></tr>
         </tbody></table></div>
+
+        <h2>Glückssteine</h2>
+        <p>Seit v5.43 können neue Spiele optional mit Glückssteinen gespielt werden. Glückssteine erscheinen zufällig beim Nachziehen ab der zweiten eigenen Runde und verstärken den Buchstabenwert einmalig. Grüne Kleeblätter bringen +1, +2 oder ×2; goldene Kleeblätter bringen +5 oder ×3.</p>
 
         <h2>Buchstabenbeutel im klassischen Spiel</h2>
         <details open><summary>9×9 · 56 Steine</summary><p class="bagList">E 8 · N 5 · I 3 · S 3 · R 3 · A 3 · T 3 · H 3 · D 3 · U 2 · L 2 · G 2 · C 1 · M 1 · O 1 · B 1 · W 1 · F 1 · K 1 · P 1 · V 1 · Z 1 · Ä 1 · Ö 1 · Ü 1 · ß 1 · QU 1 · ★ 1</p></details>

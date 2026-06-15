@@ -1749,3 +1749,82 @@ body.infoCollapsed .board.boardLarge .cell {
 .bagLettersGrid strong {
   color: var(--accent);
 }
+
+
+/* Brabbel v5.43: Glückssteine */
+.tile.luckyTile,
+.cell.luckyTile,
+.rackDragGhost.luckyTile {
+  position: relative;
+  overflow: hidden;
+}
+.tile.luckyTile::before,
+.cell.luckyTile::before,
+.rackDragGhost.luckyTile::before {
+  content: "🍀";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 2.05rem;
+  opacity: .18;
+  z-index: 0;
+  pointer-events: none;
+}
+.tile.lucky-green,
+.cell.lucky-green,
+.rackDragGhost.lucky-green {
+  background: linear-gradient(135deg, #fafff6, #dcfce7) !important;
+  border-color: #4f9f63 !important;
+}
+.tile.lucky-gold,
+.cell.lucky-gold,
+.rackDragGhost.lucky-gold {
+  background: linear-gradient(135deg, #fffdf2, #ffe8a3) !important;
+  border-color: #c48a16 !important;
+}
+.luckyMark {
+  position: absolute;
+  left: 5px;
+  bottom: 3px;
+  font-size: .7rem;
+  opacity: .78;
+  z-index: 3;
+  pointer-events: none;
+}
+.luckyValue {
+  position: absolute;
+  left: 4px;
+  top: 3px;
+  min-width: 1.45rem;
+  padding: .05rem .18rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,.86);
+  border: 1px solid rgba(37,32,24,.18);
+  font-size: .62rem;
+  line-height: 1.1;
+  font-weight: 1000;
+  z-index: 4;
+  pointer-events: none;
+}
+.tile.luckyTile .tileLetter,
+.tile.luckyTile .tilePoints,
+.cell.luckyTile .tileLetter,
+.cell.luckyTile .tilePoints,
+.rackDragGhost.luckyTile .tileLetter,
+.rackDragGhost.luckyTile .tilePoints {
+  position: relative;
+  z-index: 2;
+}
+.board.boardLarge .cell .luckyValue,
+.board.boardMedium .cell .luckyValue {
+  font-size: .5rem;
+  left: 3px;
+  top: 2px;
+}
+.board.boardLarge .cell .luckyMark,
+.board.boardMedium .cell .luckyMark {
+  font-size: .55rem;
+  left: 3px;
+  bottom: 2px;
+}
