@@ -1,4 +1,4 @@
-# Brabbel v5.45 – Glücksstein-Layoutkorrektur
+# Brabbel v5.46 – Bonussteine
 
 ## Start
 1. ZIP entpacken.
@@ -476,3 +476,16 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 - Glücksstein-Darstellung korrigiert: Der Buchstabe bleibt auch bei Bonuswert oben links exakt mittig.
 - Der normale Punktwert sitzt wieder unten rechts und wird nicht mehr neben den Buchstaben geschoben.
 - Die Glücksstein-Zahlen wurden per CSS stärker voneinander getrennt, damit Bonus, Buchstabe und Punktwert nicht kollidieren.
+
+
+
+## Neu in v5.46
+
+- Extras-Auswahl erweitert: „Glücks- und Bonussteine“.
+- Zwei Bonus-Slots links neben den Handsteinen ergänzt.
+- Bonusfreischaltung bei 7 gelegten Handsteinen oder einem Zug mit 30 oder mehr Punkten.
+- Bonusstein erscheint zu Beginn des nächsten eigenen Zuges.
+- Bonussteine ergänzt: +5, +10, +20, alle Steine tauschen, einen Stein tauschen, Punkteschutz.
+- Pro Zug kann nur ein aktiver Bonusstein verwendet werden.
+- Punkteschutz verhindert einmalig einen Handwert-Abzug am Spielende.
+- Bonussteine haben ein helles diagonales Streifenmuster.

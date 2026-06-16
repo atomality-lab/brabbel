@@ -17,6 +17,18 @@ const VOWELS = ["A", "E", "I", "O", "U", "Ä", "Ö", "Ü"];
 const PRAISES = ["Gut gemacht!", "Schön gelegt!", "Starker Zug!", "Prima gewandelt!", "Das sitzt!", "Feine Wortarbeit!"];
 const BONUS_MODE_NONE = "none";
 const BONUS_MODE_LUCK = "luck";
+const BONUS_MODE_FULL = "bonus";
+const BONUS_SLOT_COUNT = 2;
+const BONUS_LETTER_CHOICES = JOKER_CHOICES.slice();
+const BONUS_STONE_DEFS = {
+  points5: {type:"points5", symbol:"+5", name:"+5 Punkte", help:"Nach Zugabschluss erhältst du zusätzlich +5 Punkte.", kind:"points", value:5, weight:25},
+  points10: {type:"points10", symbol:"+10", name:"+10 Punkte", help:"Nach Zugabschluss erhältst du zusätzlich +10 Punkte.", kind:"points", value:10, weight:18},
+  points20: {type:"points20", symbol:"+20", name:"+20 Punkte", help:"Nach Zugabschluss erhältst du zusätzlich +20 Punkte.", kind:"points", value:20, weight:7},
+  swap_all: {type:"swap_all", symbol:"🔄", name:"Alle Steine tauschen", help:"Deine aktuellen Handsteine wandern zurück in den Beutel. Danach ziehst du eine neue Hand.", kind:"action", weight:20},
+  swap_one: {type:"swap_one", symbol:"🅰️⇄?", name:"Einen Stein tauschen", help:"Wähle einen Handstein aus und ersetze ihn durch einen Buchstaben deiner Wahl. Der alte Stein wandert zurück in den Beutel.", kind:"action", weight:20},
+  shield: {type:"shield", symbol:"🛡️0", name:"Punkteschutz", help:"Am Spielende wird dir der Wert deiner übrigen Handsteine einmal nicht abgezogen. Der Bonus wird automatisch verwendet.", kind:"passive", weight:10}
+};
+const BONUS_STONE_POOL = Object.values(BONUS_STONE_DEFS);
 const LUCK_GREEN_CHANCE = 0.085;
 const LUCK_GOLD_CHANCE = 0.03;
 const LUCK_GREEN_POOL = [{type:"plus", value:1, weight:50}, {type:"plus", value:2, weight:35}, {type:"mult", value:2, weight:15}];
@@ -110,7 +122,10 @@ function formatCellLetter(cell) {
   return cell.lucky && (cell.isNew || cell.isReplacement) ? `${base} ${luckyShortLabel(cell.lucky)}` : base;
 }
 function isBonusModeLuck(gameState=state) {
-  return gameState?.bonusMode === BONUS_MODE_LUCK;
+  return gameState?.bonusMode === BONUS_MODE_LUCK || gameState?.bonusMode === BONUS_MODE_FULL;
+}
+function isBonusModeBonus(gameState=state) {
+  return gameState?.bonusMode === BONUS_MODE_FULL;
 }
 function weightedObjectChoice(pool) {
   const total = pool.reduce((sum, item) => sum + (Number(item.weight) || 0), 0);
@@ -135,6 +150,242 @@ function drawRackWithLuckAllowed(existing, req=false) {
   const rack = drawRack(existing, req);
   if (state) state.allowLuckyForNextDraw = previous;
   return rack;
+}
+
+function createEmptyBonusSlots() {
+  return Array.from({length: BONUS_SLOT_COUNT}, () => null);
+}
+function normalizeBonusStone(stone) {
+  if (!stone) return null;
+  const type = typeof stone === "string" ? stone : stone.type;
+  const def = BONUS_STONE_DEFS[type];
+  return def ? {type: def.type} : null;
+}
+function normalizeBonusSlots(slots) {
+  const arr = Array.isArray(slots) ? slots.slice(0, BONUS_SLOT_COUNT).map(normalizeBonusStone) : [];
+  while (arr.length < BONUS_SLOT_COUNT) arr.push(null);
+  return arr;
+}
+function getBonusDef(stone) {
+  const type = typeof stone === "string" ? stone : stone?.type;
+  return BONUS_STONE_DEFS[type] || null;
+}
+function makeBonusStone(type) {
+  const def = getBonusDef(type);
+  return def ? {type: def.type} : null;
+}
+function pickBonusStone() {
+  const total = BONUS_STONE_POOL.reduce((sum, item) => sum + (Number(item.weight) || 0), 0);
+  let r = Math.random() * total;
+  for (const item of BONUS_STONE_POOL) {
+    r -= Number(item.weight) || 0;
+    if (r <= 0) return makeBonusStone(item.type);
+  }
+  return makeBonusStone("points5");
+}
+function ensureBonusState(gameState=state) {
+  if (!gameState) return;
+  gameState.bonusSlots = normalizeBonusSlots(gameState.bonusSlots);
+  gameState.pendingBonusCount = Math.max(0, Number(gameState.pendingBonusCount) || 0);
+  gameState.activeBonus = normalizeBonusStone(gameState.activeBonus);
+  gameState.usedBonusThisTurn = !!gameState.usedBonusThisTurn;
+  gameState.singleSwapActive = !!gameState.singleSwapActive;
+  gameState.pendingBonusReplacement = normalizeBonusStone(gameState.pendingBonusReplacement);
+}
+function resetTurnBonusFlags() {
+  if (!state) return;
+  state.activeBonus = null;
+  state.usedBonusThisTurn = false;
+  state.singleSwapActive = false;
+  pendingBonusSwapRackIndex = null;
+}
+function getActivePointBonusValue() {
+  if (!isBonusModeBonus()) return 0;
+  const def = getBonusDef(state?.activeBonus);
+  return def && def.kind === "points" ? Number(def.value) || 0 : 0;
+}
+function getActivePointBonusText() {
+  const value = getActivePointBonusValue();
+  return value ? `+${value} Punkte` : "";
+}
+function consumeBonusSlot(slotIndex) {
+  if (!state || !Array.isArray(state.bonusSlots)) return null;
+  const stone = normalizeBonusStone(state.bonusSlots[slotIndex]);
+  state.bonusSlots[slotIndex] = null;
+  return stone;
+}
+function addBonusStoneToSlots(stone) {
+  if (!isBonusModeBonus()) return false;
+  ensureBonusState();
+  const normalized = normalizeBonusStone(stone);
+  if (!normalized) return false;
+  const free = state.bonusSlots.findIndex(slot => !slot);
+  if (free >= 0) {
+    state.bonusSlots[free] = normalized;
+    return true;
+  }
+  state.pendingBonusReplacement = normalized;
+  showBonusReplaceDialog(normalized);
+  return false;
+}
+function deliverPendingBonusAtTurnStart(showInfo=false) {
+  if (!isBonusModeBonus()) return "";
+  ensureBonusState();
+  resetTurnBonusFlags();
+  if (state.pendingBonusReplacement) {
+    showBonusReplaceDialog(state.pendingBonusReplacement);
+    return "";
+  }
+  if (state.pendingBonusCount <= 0) return "";
+  const stone = pickBonusStone();
+  state.pendingBonusCount = Math.max(0, state.pendingBonusCount - 1);
+  const added = addBonusStoneToSlots(stone);
+  const def = getBonusDef(stone);
+  const text = def ? `Du hast einen Bonusstein erhalten: ${def.name}.` : "Du hast einen Bonusstein erhalten.";
+  if (showInfo && added) message("Bonus erhalten", text);
+  return added ? text : "";
+}
+function queueBonusUnlockFromMove(p) {
+  if (!isBonusModeBonus() || !p?.scoreDetails) return "";
+  const reasons = [];
+  if ((p.changedCells || []).length >= RACK_SIZE) reasons.push("alle 7 Handsteine abgelegt");
+  if ((p.scoreDetails.preBonusTotal || p.scoreDetails.total || 0) >= 30) reasons.push("30+ Punkte erzielt");
+  if (!reasons.length) return "";
+  ensureBonusState();
+  state.pendingBonusCount = (Number(state.pendingBonusCount) || 0) + 1;
+  return `Hurra, du hast einen Bonus freigeschaltet! 🎆\nBeim nächsten eigenen Zug erhältst du zufällig einen Bonusstein.`;
+}
+function hasPointProtectionInSlots(slots) {
+  return normalizeBonusSlots(slots).some(slot => slot?.type === "shield");
+}
+function consumePointProtectionFromSlots(slots) {
+  const normalized = normalizeBonusSlots(slots);
+  const idx = normalized.findIndex(slot => slot?.type === "shield");
+  if (idx < 0) return {used:false, slots:normalized};
+  normalized[idx] = null;
+  return {used:true, slots:normalized};
+}
+function consumeActivePointProtection() {
+  if (!state) return false;
+  ensureBonusState();
+  const result = consumePointProtectionFromSlots(state.bonusSlots);
+  state.bonusSlots = result.slots;
+  return result.used;
+}
+function getBonusSlotTitle(stone) {
+  const def = getBonusDef(stone);
+  return def ? `${def.name}: ${def.help}` : "Leerer Bonusplatz";
+}
+function renderBonusSlots() {
+  const wrap = $("bonusRackSlots");
+  if (!wrap || !state) return;
+  if (!isBonusModeBonus()) { wrap.classList.add("hidden"); wrap.innerHTML = ""; return; }
+  ensureBonusState();
+  wrap.classList.remove("hidden");
+  wrap.innerHTML = "";
+  state.bonusSlots.forEach((stone, idx) => {
+    const def = getBonusDef(stone);
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = def ? "bonusStoneSlot filled" : "bonusStoneSlot empty";
+    btn.dataset.bonusSlot = String(idx);
+    btn.title = getBonusSlotTitle(stone);
+    if (def) {
+      btn.innerHTML = `<span class="bonusStoneSymbol">${escapeHtml(def.symbol)}</span><span class="bonusStoneName">${escapeHtml(def.name)}</span>`;
+      btn.addEventListener("click", () => handleBonusSlotClick(idx));
+    } else {
+      btn.innerHTML = `<span class="bonusStoneSymbol">✨</span><span class="bonusStoneName">Bonus</span>`;
+      btn.disabled = true;
+    }
+    wrap.appendChild(btn);
+  });
+}
+function showBonusReplaceDialog(stone) {
+  const def = getBonusDef(stone);
+  if (!def) return;
+  if ($("bonusReplaceText")) $("bonusReplaceText").textContent = `Neuer Bonus: ${def.name}\n\nDeine Bonusplätze sind voll. Welchen Platz möchtest du ersetzen?`;
+  $("bonusReplaceDialog")?.showModal();
+}
+function resolveBonusReplacement(action) {
+  if (!state) return;
+  ensureBonusState();
+  const stone = normalizeBonusStone(state.pendingBonusReplacement);
+  state.pendingBonusReplacement = null;
+  $("bonusReplaceDialog")?.close();
+  if (!stone) { renderGame(); return; }
+  if (action === "slot1") state.bonusSlots[0] = stone;
+  else if (action === "slot2") state.bonusSlots[1] = stone;
+  renderGame();
+  saveAutosave();
+}
+function activateBonusSlot(slotIndex) {
+  if (!isBonusModeBonus()) return;
+  ensureBonusState();
+  const stone = state.bonusSlots[slotIndex];
+  const def = getBonusDef(stone);
+  if (!def) return;
+  if (def.kind === "passive") {
+    message(def.name, `${def.help}\n\nDieser Bonus bleibt im Slot und wird bei Bedarf automatisch verwendet.`);
+    return;
+  }
+  if (state.usedBonusThisTurn) { message("Bonus schon verwendet", "Du kannst pro Zug nur einen Bonusstein verwenden."); return; }
+  confirmDialog(def.name, `${def.help}\n\nDiesen Bonus jetzt einsetzen?\nNach dem Aktivieren kann er nicht zurückgelegt werden.`, "Ja, verwenden", () => useBonusSlot(slotIndex), "Nein, zurück");
+}
+function handleBonusSlotClick(slotIndex) {
+  activateBonusSlot(slotIndex);
+}
+function useBonusSlot(slotIndex) {
+  const stone = consumeBonusSlot(slotIndex);
+  const def = getBonusDef(stone);
+  if (!def) { renderGame(); return; }
+  state.usedBonusThisTurn = true;
+  if (def.kind === "points") {
+    state.activeBonus = stone;
+    message("Bonus aktiviert", `${def.name} ist aktiviert. Schließe jetzt einen gültigen Zug ab, dann wird der Bonus addiert.`);
+  } else if (def.type === "swap_all") {
+    swapAllRackTilesWithBonus();
+  } else if (def.type === "swap_one") {
+    state.singleSwapActive = true;
+    message("Bonus aktiviert", "Tippe jetzt einen Handstein an. Danach wählst du den neuen Buchstaben aus.");
+  }
+  renderGame();
+  saveAutosave();
+}
+function swapAllRackTilesWithBonus() {
+  if (!state) return;
+  const oldTiles = state.rack.filter(Boolean).map(stripTileLuck);
+  if (isClassicGame()) state.bag = shuffleArray((state.bag || []).concat(oldTiles));
+  state.rack = drawRackWithLuckAllowed([], true);
+  selectedRackIndex = null;
+}
+function showBonusLetterDialog(rackIndex) {
+  pendingBonusSwapRackIndex = rackIndex;
+  const wrap = $("bonusLetterChoices");
+  if (!wrap) return;
+  wrap.innerHTML = BONUS_LETTER_CHOICES.map(ch => `<button type="button" data-letter="${escapeHtml(ch)}">${escapeHtml(ch)}</button>`).join("");
+  wrap.querySelectorAll("button").forEach(btn => btn.addEventListener("click", () => confirmBonusLetterChoice(btn.dataset.letter)));
+  $("bonusLetterDialog")?.showModal();
+}
+function confirmBonusLetterChoice(letter) {
+  if (!state || pendingBonusSwapRackIndex === null) return;
+  const chosen = normalizeJokerChoice(letter);
+  if (!chosen) return;
+  const old = state.rack[pendingBonusSwapRackIndex];
+  if (!old) return;
+  if (isClassicGame()) state.bag = shuffleArray((state.bag || []).concat([stripTileLuck(old)]));
+  state.rack[pendingBonusSwapRackIndex] = chosen;
+  state.singleSwapActive = false;
+  pendingBonusSwapRackIndex = null;
+  $("bonusLetterDialog")?.close();
+  selectedRackIndex = null;
+  renderGame();
+  saveAutosave();
+}
+function cancelBonusLetterChoice() {
+  pendingBonusSwapRackIndex = null;
+  if (state) state.singleSwapActive = false;
+  $("bonusLetterDialog")?.close();
+  renderGame();
 }
 
 function getWordLengthBonus(length) {
@@ -302,6 +553,7 @@ const storedInfoPanelCollapsed = localStorage.getItem(K.infoPanelCollapsed);
 let infoPanelCollapsed = storedInfoPanelCollapsed === null ? true : storedInfoPanelCollapsed === "true";
 let pendingUnknownWords = [];
 let confirmAction = null;
+let pendingBonusSwapRackIndex = null;
 
 const $ = id => document.getElementById(id);
 
@@ -377,6 +629,11 @@ function ensureDuelPlayerShape(player, fallbackName) {
   player.stats = player.stats || createEmptyStats();
   player.lastMove = player.lastMove || null;
   player.turns = Number(player.turns) || 0;
+  player.bonusSlots = normalizeBonusSlots(player.bonusSlots);
+  player.pendingBonusCount = Math.max(0, Number(player.pendingBonusCount) || 0);
+  player.activeBonus = normalizeBonusStone(player.activeBonus);
+  player.usedBonusThisTurn = !!player.usedBonusThisTurn;
+  player.singleSwapActive = !!player.singleSwapActive;
   return player;
 }
 function syncActivePlayerFromPlayers(gameState=state) {
@@ -390,6 +647,11 @@ function syncActivePlayerFromPlayers(gameState=state) {
   while (gameState.rack.length < RACK_SIZE) gameState.rack.push("");
   gameState.stats = player.stats || createEmptyStats();
   gameState.lastMove = player.lastMove || null;
+  gameState.bonusSlots = normalizeBonusSlots(player.bonusSlots);
+  gameState.pendingBonusCount = Math.max(0, Number(player.pendingBonusCount) || 0);
+  gameState.activeBonus = normalizeBonusStone(player.activeBonus);
+  gameState.usedBonusThisTurn = !!player.usedBonusThisTurn;
+  gameState.singleSwapActive = !!player.singleSwapActive;
 }
 function syncActivePlayerToPlayers(gameState=state) {
   if (!isDuelGame(gameState)) return;
@@ -401,6 +663,11 @@ function syncActivePlayerToPlayers(gameState=state) {
   while (player.rack.length < RACK_SIZE) player.rack.push("");
   player.stats = gameState.stats || createEmptyStats();
   player.lastMove = gameState.lastMove || null;
+  player.bonusSlots = normalizeBonusSlots(gameState.bonusSlots);
+  player.pendingBonusCount = Math.max(0, Number(gameState.pendingBonusCount) || 0);
+  player.activeBonus = normalizeBonusStone(gameState.activeBonus);
+  player.usedBonusThisTurn = !!gameState.usedBonusThisTurn;
+  player.singleSwapActive = !!gameState.singleSwapActive;
 }
 function getDuelPlayerNames() {
   const main = localStorage.getItem(K.player) || "Spieler 1";
@@ -425,6 +692,7 @@ function describePlayMode(gameState=state) {
   return isDuelGame(gameState) ? "Zu zweit" : "Einzel";
 }
 function describeBonusMode(gameState=state) {
+  if (gameState?.bonusMode === BONUS_MODE_FULL) return "Glücks- und Bonussteine";
   if (gameState?.bonusMode === BONUS_MODE_LUCK) return "Glückssteine";
   return "Ohne Extras";
 }
@@ -499,6 +767,7 @@ function continueAfterHandoff() {
   if (!state || !isDuelGame()) { showScreen("screen-menu"); return; }
   state.handoff = null;
   syncActivePlayerFromPlayers();
+  deliverPendingBonusAtTurnStart(false);
   selectedRackIndex = null;
   showScreen("screen-game");
   renderGame();
@@ -516,7 +785,7 @@ function getSaveModeText(gameState) {
   const size = gameState?.boardSize || 9;
   const mode = gameState?.playMode === "duel" ? "Zu zweit" : "Einzel";
   const round = gameState?.round || 1;
-  const bonus = gameState?.bonusMode === BONUS_MODE_LUCK ? " · Glückssteine" : "";
+  const bonus = gameState?.bonusMode === BONUS_MODE_FULL ? " · Glücks- und Bonussteine" : (gameState?.bonusMode === BONUS_MODE_LUCK ? " · Glückssteine" : "");
   return `${mode} · Runde ${round} · ${size}×${size}${bonus}`;
 }
 
@@ -553,7 +822,14 @@ function init() {
   $("shuffleRackBtn").addEventListener("click", shuffleRack);
   $("verifyYesBtn").onclick = window.wwAcceptUnknownWord;
   $("verifyNoBtn").onclick = window.wwRejectUnknownWord;
-  $("messageOkBtn").addEventListener("click", () => $("messageDialog").close());
+  $("messageOkBtn").addEventListener("click", () => {
+    $("messageDialog").close();
+    if (state && !isDuelGame() && isBonusModeBonus() && (Number(state.pendingBonusCount) || 0) > 0) {
+      deliverPendingBonusAtTurnStart(false);
+      renderGame();
+      saveAutosave();
+    }
+  });
   $("jokerOkBtn").addEventListener("click", confirmJokerLetter);
   $("jokerCancelBtn").addEventListener("click", cancelJokerLetter);
   $("jokerInput").addEventListener("keydown", event => { if (event.key === "Enter") confirmJokerLetter(); });
@@ -703,10 +979,11 @@ function startNewGame() {
     board: [], rack: [], bag: endMode === "classic" ? createClassicBag(boardSize, jokerCount) : null,
     lastMove: null, startedAt: new Date().toISOString(), savedAt: null,
     specialLayoutData: null,
-    stats: createEmptyStats()
+    stats: createEmptyStats(),
+    bonusSlots: createEmptyBonusSlots(), pendingBonusCount: 0, activeBonus: null, usedBonusThisTurn: false, singleSwapActive: false
   };
   if (playMode === "duel") {
-    state.players = duelNames.map((name, i) => ensureDuelPlayerShape({name, score: 0, rack: [], stats: createEmptyStats(), lastMove: null, turns: 0}, `Spieler ${i + 1}`));
+    state.players = duelNames.map((name, i) => ensureDuelPlayerShape({name, score: 0, rack: [], stats: createEmptyStats(), lastMove: null, turns: 0, bonusSlots: createEmptyBonusSlots(), pendingBonusCount: 0, activeBonus: null, usedBonusThisTurn: false, singleSwapActive: false}, `Spieler ${i + 1}`));
     state.currentPlayerIndex = Math.floor(Math.random() * state.players.length);
   }
   if (mode === "special" && specialLayoutType === "random") state.specialLayoutData = createRandomSpecialLayout(boardSize);
@@ -831,6 +1108,7 @@ function weightedChoice() {
 
 function renderGame() {
   if (!state) return;
+  ensureBonusState();
   $("scoreOut").textContent = state.score;
   $("roundOut").textContent = state.round;
   $("gameSubtitle").textContent = isDuelGame()
@@ -840,7 +1118,7 @@ function renderGame() {
   const giveUpAvailable = isGiveUpAvailable();
   $("giveUpBtn")?.classList.toggle("hidden", !giveUpAvailable);
   $("bottomGameControls")?.classList.toggle("hasGiveUp", giveUpAvailable);
-  renderBoard(); renderRack(); renderTurnStatus(); renderPreview(); renderLastMove(); renderBagLetters();
+  renderBoard(); renderRack(); renderBonusSlots(); renderTurnStatus(); renderPreview(); renderLastMove(); renderBagLetters();
 }
 function getRoundStatusText() {
   if (!state) return "–";
@@ -1342,6 +1620,11 @@ function renderRack() {
     }
     b.addEventListener("click", () => {
       if (suppressRackClick) { suppressRackClick = false; return; }
+      if (state?.singleSwapActive) {
+        if (!l) { message("Stein tauschen", "Bitte tippe einen belegten Handstein an."); return; }
+        showBonusLetterDialog(idx);
+        return;
+      }
       selectedRackIndex = selectedRackIndex === idx ? null : idx;
       renderGame();
     });
@@ -1638,9 +1921,12 @@ function calculateScoreDetails(words, changedCells) {
   const replacementCount = changedCells.filter(c => c.isReplacement).length;
   const replacementBonus = replacementCount * 2;
   const handBonus = changedCells.length === 7 ? 20 : 0;
-  const total = basePoints + lengthBonus + comboBonus + replacementBonus + handBonus;
+  const preBonusTotal = basePoints + lengthBonus + comboBonus + replacementBonus + handBonus;
+  const bonusStonePoints = getActivePointBonusValue();
+  const total = preBonusTotal + bonusStonePoints;
   const specialText = wordDetails.flatMap(w => w.specialBonuses).join(", ");
   const luckText = luckyDetails.join(", ");
+  const bonusStoneText = getActivePointBonusText();
 
   return {
     wordDetails,
@@ -1651,6 +1937,9 @@ function calculateScoreDetails(words, changedCells) {
     replacementCount,
     replacementBonus,
     handBonus,
+    bonusStonePoints,
+    bonusStoneText,
+    preBonusTotal,
     specialText,
     luckText,
     total
@@ -1671,6 +1960,7 @@ function formatMoveScoreBreakdown(d, total) {
     `Wandelbonus: +${d.replacementBonus || 0}`,
     `Handbonus: +${d.handBonus || 0}`
   ];
+  if (d.bonusStonePoints) lines.push(`Bonusstein: +${d.bonusStonePoints}`);
   if (d.specialText) lines.splice(2, 0, `Sonderfelder: ${d.specialText}`);
   if (d.luckText) lines.splice(2, 0, `Glückssteine: ${d.luckText}`);
   return `Du erhältst ${total || 0} Punkte.\n\nAufschlüsselung:\n${lines.join("\n")}`;
@@ -1756,8 +2046,12 @@ function finalizeMove(p) {
   }
   state.firstSuccessfulMove = true;
   const title = getMovePraiseTitle(p.points);
-  const text = formatMoveSuccessText(p);
+  const unlockText = queueBonusUnlockFromMove(p);
+  const text = formatMoveSuccessText(p) + (unlockText ? `
+
+${unlockText}` : "");
   state.rack = drawRackWithLuckAllowed(state.rack, false);
+  resetTurnBonusFlags();
   selectedRackIndex = null;
 
   if (isDuelGame()) {
@@ -1948,11 +2242,14 @@ function getDuelOpponentHandPenaltyText(winnerIndex) {
   const lines = [];
   (state.players || []).forEach((player, i) => {
     if (i === winnerIndex) return;
-    const penalty = getRackValue(player.rack);
-    if (penalty > 0) {
+    const rawPenalty = getRackValue(player.rack);
+    if (rawPenalty > 0) {
+      const protection = isBonusModeBonus() ? consumePointProtectionFromSlots(player.bonusSlots) : {used:false, slots:normalizeBonusSlots(player.bonusSlots)};
+      player.bonusSlots = protection.slots;
+      const penalty = protection.used ? 0 : rawPenalty;
       player.score = (Number(player.score) || 0) - penalty;
       player.rack = Array.from({length: RACK_SIZE}, () => "");
-      lines.push(`${player.name}: Resthand -${penalty} Punkte`);
+      lines.push(protection.used ? `${player.name}: Punkteschutz verhindert Resthand-Abzug (${rawPenalty} Punkte)` : `${player.name}: Resthand -${penalty} Punkte`);
     }
   });
   return lines.join("\n");
@@ -1983,15 +2280,17 @@ function isGiveUpAvailable() {
 
 function giveUpGame() {
   if (!state) return;
-  const penalty = getRackPenalty();
+  const rawPenalty = getRackPenalty();
+  const hasProtection = isBonusModeBonus() && hasPointProtectionInSlots(state.bonusSlots);
   const hand = state.rack.filter(Boolean).map(formatLuckyTile).join(", ") || "keine";
+  const protectionText = hasProtection ? "\n\nPunkteschutz vorhanden: Der Abzug wird beim Aufgeben auf 0 gesetzt." : "\n\nDieser Wert wird von deinem Gesamtstand abgezogen.";
   confirmDialog("Aufgeben", `Möchtest du das Spiel jetzt aufgeben?
 
 Handsteine: ${hand}
-Handwert: ${penalty} Punkte
-
-Dieser Wert wird von deinem Gesamtstand abgezogen.`, "Ja, aufgeben", () => {
+Handwert: ${rawPenalty} Punkte${protectionText}`, "Ja, aufgeben", () => {
     const givingUpName = state.player || "Spieler";
+    const protectedByBonus = isBonusModeBonus() && consumeActivePointProtection();
+    const penalty = protectedByBonus ? 0 : rawPenalty;
     state.score -= penalty;
     state.rack = Array.from({length: RACK_SIZE}, () => "");
     state.lastMove = {words: ["Aufgegeben"], usedLetters: [], points: -penalty, date: new Date().toISOString()};
@@ -2016,7 +2315,7 @@ ${givingUpName} hat ebenfalls aufgegeben. Der Handwert wurde abgezogen: -${penal
       return;
     }
 
-    finishGame(`${givingUpName} hat aufgegeben. Der Handwert wurde abgezogen: -${penalty} Punkte.`);
+    finishGame(protectedByBonus ? `${givingUpName} hat aufgegeben. Der Punkteschutz verhindert den Handwert-Abzug.` : `${givingUpName} hat aufgegeben. Der Handwert wurde abgezogen: -${penalty} Punkte.`);
   });
 }
 
@@ -2087,6 +2386,7 @@ function passTurn() {
     if (isClassicGame()) { state.bag = shuffleArray((state.bag || []).concat(state.rack.filter(Boolean).map(stripTileLuck))); state.rack = drawRackWithLuckAllowed([], true); }
     else state.rack = drawRackWithLuckAllowed([], true);
     state.lastMove = {words: ["Passe"], usedLetters: [], points: 0, date: new Date().toISOString()};
+    resetTurnBonusFlags();
     selectedRackIndex = null;
 
     if (isDuelGame()) {
@@ -2111,6 +2411,7 @@ ${state.player} hat gepasst. Das Spiel endet jetzt.`);
     }
 
     state.round += 1;
+    deliverPendingBonusAtTurnStart(false);
     renderGame();
     saveAutosave();
     if (!checkGameEndAfterTurn()) message("Runde ausgesetzt", isClassicGame() ? "Du hast gepasst und neue Buchstaben aus dem Beutel gezogen." : "Du hast gepasst und 7 neue Buchstaben erhalten.");
@@ -2209,6 +2510,7 @@ window.loadAutosave = function() {
   state = auto;
   delete state.autosave;
   if (isDuelGame()) syncActivePlayerFromPlayers();
+  if (!(isDuelGame() && state.handoff)) deliverPendingBonusAtTurnStart(false);
   selectedRackIndex = null;
   if (isDuelGame() && state.handoff) { renderHandoff(); showScreen("screen-handoff"); }
   else { showScreen("screen-game"); renderGame(); }
@@ -2225,7 +2527,7 @@ window.deleteAutosave = function() {
 window.loadSlot = function(i) {
   const slot = getSlots()[i];
   if (!slot) return;
-  state = slot; if (isDuelGame()) syncActivePlayerFromPlayers(); selectedRackIndex = null;
+  state = slot; if (isDuelGame()) syncActivePlayerFromPlayers(); if (!(isDuelGame() && state.handoff)) deliverPendingBonusAtTurnStart(false); selectedRackIndex = null;
   if (isDuelGame() && state.handoff) { renderHandoff(); showScreen("screen-handoff"); }
   else { showScreen("screen-game"); renderGame(); }
 };
@@ -2445,6 +2747,14 @@ window.wwConfirmYes = function() {
   const d = $("confirmDialog");
   if (d && d.open) d.close();
   if (typeof action === "function") action();
+};
+
+window.wwResolveBonusReplacement = function(action) {
+  resolveBonusReplacement(action);
+};
+
+window.wwCancelBonusLetterChoice = function() {
+  cancelBonusLetterChoice();
 };
 
 init();

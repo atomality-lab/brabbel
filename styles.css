@@ -1921,3 +1921,89 @@ body.infoCollapsed .board.boardLarge .cell {
   transform: none !important;
   z-index: 4 !important;
 }
+
+/* Brabbel v5.46: Bonussteine */
+.rackWithBonus {
+  display: flex;
+  align-items: flex-start;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+.rackWithBonus .rack {
+  flex: 1 1 420px;
+}
+.bonusRackSlots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .55rem;
+  padding-right: .75rem;
+  margin-right: .05rem;
+  border-right: 3px dashed rgba(111, 98, 83, .28);
+}
+.bonusStoneSlot {
+  width: 70px;
+  height: 70px;
+  min-height: 70px;
+  padding: .22rem;
+  border-radius: 16px;
+  border: 4px solid #b99a66;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: .08rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  background: repeating-linear-gradient(135deg, #fffdf7 0 9px, #f3e8ff 9px 18px);
+  color: var(--ink);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.9);
+}
+.bonusStoneSlot::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,.62), rgba(255,255,255,0));
+  pointer-events: none;
+}
+.bonusStoneSlot.filled {
+  border-color: #8b6bb0;
+}
+.bonusStoneSlot.empty {
+  opacity: .48;
+  border-style: dashed;
+  background: repeating-linear-gradient(135deg, #fffdf7 0 9px, #eee2d2 9px 18px);
+}
+.bonusStoneSymbol {
+  position: relative;
+  z-index: 1;
+  display: block;
+  font-size: 1.18rem;
+  line-height: 1;
+  font-weight: 1000;
+}
+.bonusStoneName {
+  position: relative;
+  z-index: 1;
+  display: block;
+  font-size: .53rem;
+  line-height: 1.05;
+  font-weight: 950;
+}
+@media (max-width: 620px) {
+  .rackWithBonus { gap: .55rem; }
+  .bonusRackSlots {
+    padding-right: 0;
+    padding-bottom: .55rem;
+    border-right: 0;
+    border-bottom: 3px dashed rgba(111, 98, 83, .28);
+  }
+  .rackWithBonus .rack { flex-basis: 100%; }
+  .bonusStoneSlot {
+    width: 58px;
+    height: 58px;
+    min-height: 58px;
+    border-width: 3px;
+  }
+  .bonusStoneSymbol { font-size: 1rem; }
+  .bonusStoneName { font-size: .48rem; }
+}
