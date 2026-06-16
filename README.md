@@ -1,4 +1,4 @@
-# Brabbel v5.46 – Bonussteine
+# Brabbel v5.47 – PvP-Bonussteine
 
 ## Start
 1. ZIP entpacken.
@@ -489,3 +489,13 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 - Pro Zug kann nur ein aktiver Bonusstein verwendet werden.
 - Punkteschutz verhindert einmalig einen Handwert-Abzug am Spielende.
 - Bonussteine haben ein helles diagonales Streifenmuster.
+
+
+
+## Neu in v5.47
+
+- Im Zu-zweit-Modus können Bonussteine jetzt auch Duell-Boni sein.
+- Neue Duell-Boni: Punktedieb −5, Punktedieb −10, Handtausch und Zwangspause.
+- Duell-Bonussteine erscheinen nur im Zu-zweit-Modus und nur bei aktivem Modus „Glücks- und Bonussteine“.
+- Duell-Boni haben das gleiche Streifenprinzip wie normale Bonussteine, aber eine andere Farbwelt.
+- Zwangspause lässt den Gegenspieler beim nächsten Übergabeschirm automatisch aussetzen.

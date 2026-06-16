@@ -26,9 +26,16 @@ const BONUS_STONE_DEFS = {
   points20: {type:"points20", symbol:"+20", name:"+20 Punkte", help:"Nach Zugabschluss erhältst du zusätzlich +20 Punkte.", kind:"points", value:20, weight:7},
   swap_all: {type:"swap_all", symbol:"🔄", name:"Alle Steine tauschen", help:"Deine aktuellen Handsteine wandern zurück in den Beutel. Danach ziehst du eine neue Hand.", kind:"action", weight:20},
   swap_one: {type:"swap_one", symbol:"🅰️⇄?", name:"Einen Stein tauschen", help:"Wähle einen Handstein aus und ersetze ihn durch einen Buchstaben deiner Wahl. Der alte Stein wandert zurück in den Beutel.", kind:"action", weight:20},
-  shield: {type:"shield", symbol:"🛡️0", name:"Punkteschutz", help:"Am Spielende wird dir der Wert deiner übrigen Handsteine einmal nicht abgezogen. Der Bonus wird automatisch verwendet.", kind:"passive", weight:10}
+  shield: {type:"shield", symbol:"🛡️0", name:"Punkteschutz", help:"Am Spielende wird dir der Wert deiner übrigen Handsteine einmal nicht abgezogen. Der Bonus wird automatisch verwendet.", kind:"passive", weight:10},
+  pvp_steal5: {type:"pvp_steal5", symbol:"👤−5", name:"Punktedieb −5", help:"Dem Gegenspieler werden 5 Punkte abgezogen. Der Punktestand fällt nicht unter 0.", kind:"pvp", target:"opponent", value:5, weight:40},
+  pvp_steal10: {type:"pvp_steal10", symbol:"👤−10", name:"Punktedieb −10", help:"Dem Gegenspieler werden 10 Punkte abgezogen. Der Punktestand fällt nicht unter 0.", kind:"pvp", target:"opponent", value:10, weight:20},
+  pvp_hand_swap: {type:"pvp_hand_swap", symbol:"✋⇄✋", name:"Handtausch", help:"Du tauschst deine aktuellen Handsteine mit denen deines Gegenspielers.", kind:"pvp", target:"opponent", weight:25},
+  pvp_skip: {type:"pvp_skip", symbol:"👤🚫", name:"Zwangspause", help:"Der Gegenspieler muss seinen nächsten Zug aussetzen. Danach bist du wieder am Zug.", kind:"pvp", target:"opponent", weight:15}
 };
-const BONUS_STONE_POOL = Object.values(BONUS_STONE_DEFS);
+const BONUS_GENERAL_TYPES = ["points5", "points10", "points20", "swap_all", "swap_one", "shield"];
+const BONUS_PVP_TYPES = ["pvp_steal5", "pvp_steal10", "pvp_hand_swap", "pvp_skip"];
+const BONUS_STONE_POOL = BONUS_GENERAL_TYPES.map(type => BONUS_STONE_DEFS[type]);
+const BONUS_PVP_POOL = BONUS_PVP_TYPES.map(type => BONUS_STONE_DEFS[type]);
 const LUCK_GREEN_CHANCE = 0.085;
 const LUCK_GOLD_CHANCE = 0.03;
 const LUCK_GREEN_POOL = [{type:"plus", value:1, weight:50}, {type:"plus", value:2, weight:35}, {type:"mult", value:2, weight:15}];
@@ -174,14 +181,19 @@ function makeBonusStone(type) {
   const def = getBonusDef(type);
   return def ? {type: def.type} : null;
 }
-function pickBonusStone() {
-  const total = BONUS_STONE_POOL.reduce((sum, item) => sum + (Number(item.weight) || 0), 0);
+function pickWeightedBonusFromPool(pool) {
+  const usable = (pool || []).filter(Boolean);
+  const total = usable.reduce((sum, item) => sum + (Number(item.weight) || 0), 0);
   let r = Math.random() * total;
-  for (const item of BONUS_STONE_POOL) {
+  for (const item of usable) {
     r -= Number(item.weight) || 0;
     if (r <= 0) return makeBonusStone(item.type);
   }
-  return makeBonusStone("points5");
+  return makeBonusStone(usable[0]?.type || "points5");
+}
+function pickBonusStone() {
+  if (isDuelGame() && Math.random() < 0.25) return pickWeightedBonusFromPool(BONUS_PVP_POOL);
+  return pickWeightedBonusFromPool(BONUS_STONE_POOL);
 }
 function ensureBonusState(gameState=state) {
   if (!gameState) return;
@@ -287,7 +299,7 @@ function renderBonusSlots() {
     const def = getBonusDef(stone);
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = def ? "bonusStoneSlot filled" : "bonusStoneSlot empty";
+    btn.className = def ? `bonusStoneSlot filled ${def.target === "opponent" ? "pvp" : "self"}` : "bonusStoneSlot empty";
     btn.dataset.bonusSlot = String(idx);
     btn.title = getBonusSlotTitle(stone);
     if (def) {
@@ -347,6 +359,14 @@ function useBonusSlot(slotIndex) {
   } else if (def.type === "swap_one") {
     state.singleSwapActive = true;
     message("Bonus aktiviert", "Tippe jetzt einen Handstein an. Danach wählst du den neuen Buchstaben aus.");
+  } else if (def.type === "pvp_steal5") {
+    applyPvpPointSteal(5);
+  } else if (def.type === "pvp_steal10") {
+    applyPvpPointSteal(10);
+  } else if (def.type === "pvp_hand_swap") {
+    applyPvpHandSwap();
+  } else if (def.type === "pvp_skip") {
+    applyPvpSkip();
   }
   renderGame();
   saveAutosave();
@@ -358,6 +378,68 @@ function swapAllRackTilesWithBonus() {
   state.rack = drawRackWithLuckAllowed([], true);
   selectedRackIndex = null;
 }
+function getOpponentIndex() {
+  if (!isDuelGame()) return -1;
+  return (Number(state.currentPlayerIndex || 0) + 1) % state.players.length;
+}
+function getOpponentPlayer() {
+  const idx = getOpponentIndex();
+  return idx >= 0 ? state.players[idx] : null;
+}
+function applyPvpPointSteal(amount) {
+  if (!isDuelGame()) { message("Nur zu zweit", "Dieser Bonusstein wirkt nur im Zu-zweit-Modus."); return; }
+  syncActivePlayerToPlayers();
+  const opponent = getOpponentPlayer();
+  if (!opponent) return;
+  const before = Number(opponent.score) || 0;
+  opponent.score = Math.max(0, before - amount);
+  syncActivePlayerFromPlayers();
+  message("Punktedieb", `${opponent.name} verliert ${before - opponent.score} Punkte.`);
+}
+function applyPvpHandSwap() {
+  if (!isDuelGame()) { message("Nur zu zweit", "Dieser Bonusstein wirkt nur im Zu-zweit-Modus."); return; }
+  syncActivePlayerToPlayers();
+  const ownIndex = Number(state.currentPlayerIndex || 0);
+  const opponentIndex = getOpponentIndex();
+  const own = state.players[ownIndex];
+  const opponent = state.players[opponentIndex];
+  if (!own || !opponent) return;
+  const ownRack = normalizeRackForSwap(own.rack);
+  own.rack = normalizeRackForSwap(opponent.rack);
+  opponent.rack = ownRack;
+  syncActivePlayerFromPlayers();
+  selectedRackIndex = null;
+  message("Handtausch", `Du hast deine Hand mit ${opponent.name} getauscht.`);
+}
+function normalizeRackForSwap(rack) {
+  const normalized = Array.isArray(rack) ? rack.slice(0, RACK_SIZE) : [];
+  while (normalized.length < RACK_SIZE) normalized.push("");
+  return normalized;
+}
+function applyPvpSkip() {
+  if (!isDuelGame()) { message("Nur zu zweit", "Dieser Bonusstein wirkt nur im Zu-zweit-Modus."); return; }
+  syncActivePlayerToPlayers();
+  const opponent = getOpponentPlayer();
+  if (!opponent) return;
+  opponent.skipNextTurn = true;
+  syncActivePlayerFromPlayers();
+  message("Zwangspause", `${opponent.name} muss den nächsten Zug aussetzen.`);
+}
+function handleForcedPvpSkipAfterHandoff() {
+  if (!isDuelGame()) return false;
+  const player = getCurrentPlayer();
+  if (!player?.skipNextTurn) return false;
+  const skippedName = player.name || "Der Gegenspieler";
+  player.skipNextTurn = false;
+  state.skipNextTurn = false;
+  syncActivePlayerToPlayers();
+  noteCurrentDuelTurnFinished();
+  advanceDuelTurn();
+  const nextName = getCurrentPlayer()?.name || "der andere Spieler";
+  showHandoffScreen("Zwangspause", `${skippedName} muss diese Runde aussetzen.`, `${nextName}, du bist wieder am Zug. Bitte Tablet nehmen und mit „Weiter“ bestätigen.`);
+  return true;
+}
+
 function showBonusLetterDialog(rackIndex) {
   pendingBonusSwapRackIndex = rackIndex;
   const wrap = $("bonusLetterChoices");
@@ -634,6 +716,7 @@ function ensureDuelPlayerShape(player, fallbackName) {
   player.activeBonus = normalizeBonusStone(player.activeBonus);
   player.usedBonusThisTurn = !!player.usedBonusThisTurn;
   player.singleSwapActive = !!player.singleSwapActive;
+  player.skipNextTurn = !!player.skipNextTurn;
   return player;
 }
 function syncActivePlayerFromPlayers(gameState=state) {
@@ -652,6 +735,7 @@ function syncActivePlayerFromPlayers(gameState=state) {
   gameState.activeBonus = normalizeBonusStone(player.activeBonus);
   gameState.usedBonusThisTurn = !!player.usedBonusThisTurn;
   gameState.singleSwapActive = !!player.singleSwapActive;
+  gameState.skipNextTurn = !!player.skipNextTurn;
 }
 function syncActivePlayerToPlayers(gameState=state) {
   if (!isDuelGame(gameState)) return;
@@ -668,6 +752,7 @@ function syncActivePlayerToPlayers(gameState=state) {
   player.activeBonus = normalizeBonusStone(gameState.activeBonus);
   player.usedBonusThisTurn = !!gameState.usedBonusThisTurn;
   player.singleSwapActive = !!gameState.singleSwapActive;
+  player.skipNextTurn = !!gameState.skipNextTurn;
 }
 function getDuelPlayerNames() {
   const main = localStorage.getItem(K.player) || "Spieler 1";
@@ -767,6 +852,7 @@ function continueAfterHandoff() {
   if (!state || !isDuelGame()) { showScreen("screen-menu"); return; }
   state.handoff = null;
   syncActivePlayerFromPlayers();
+  if (handleForcedPvpSkipAfterHandoff()) return;
   deliverPendingBonusAtTurnStart(false);
   selectedRackIndex = null;
   showScreen("screen-game");
@@ -983,7 +1069,7 @@ function startNewGame() {
     bonusSlots: createEmptyBonusSlots(), pendingBonusCount: 0, activeBonus: null, usedBonusThisTurn: false, singleSwapActive: false
   };
   if (playMode === "duel") {
-    state.players = duelNames.map((name, i) => ensureDuelPlayerShape({name, score: 0, rack: [], stats: createEmptyStats(), lastMove: null, turns: 0, bonusSlots: createEmptyBonusSlots(), pendingBonusCount: 0, activeBonus: null, usedBonusThisTurn: false, singleSwapActive: false}, `Spieler ${i + 1}`));
+    state.players = duelNames.map((name, i) => ensureDuelPlayerShape({name, score: 0, rack: [], stats: createEmptyStats(), lastMove: null, turns: 0, bonusSlots: createEmptyBonusSlots(), pendingBonusCount: 0, activeBonus: null, usedBonusThisTurn: false, singleSwapActive: false, skipNextTurn: false}, `Spieler ${i + 1}`));
     state.currentPlayerIndex = Math.floor(Math.random() * state.players.length);
   }
   if (mode === "special" && specialLayoutType === "random") state.specialLayoutData = createRandomSpecialLayout(boardSize);

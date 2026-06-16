@@ -2007,3 +2007,16 @@ body.infoCollapsed .board.boardLarge .cell {
   .bonusStoneSymbol { font-size: 1rem; }
   .bonusStoneName { font-size: .48rem; }
 }
+
+/* Brabbel v5.47: Duell-Bonussteine */
+.bonusStoneSlot.pvp {
+  border-color: #b45309;
+  background: repeating-linear-gradient(135deg, #fff7ed 0 9px, #fed7aa 9px 18px);
+}
+.bonusStoneSlot.pvp .bonusStoneSymbol,
+.bonusStoneSlot.pvp .bonusStoneName {
+  color: #7c2d12;
+}
+.bonusStoneSlot.self {
+  border-color: #8b6bb0;
+}
