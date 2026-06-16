@@ -17,8 +17,8 @@ const VOWELS = ["A", "E", "I", "O", "U", "Ä", "Ö", "Ü"];
 const PRAISES = ["Gut gemacht!", "Schön gelegt!", "Starker Zug!", "Prima gewandelt!", "Das sitzt!", "Feine Wortarbeit!"];
 const BONUS_MODE_NONE = "none";
 const BONUS_MODE_LUCK = "luck";
-const LUCK_GREEN_CHANCE = 0.07;
-const LUCK_GOLD_CHANCE = 0.015;
+const LUCK_GREEN_CHANCE = 0.085;
+const LUCK_GOLD_CHANCE = 0.03;
 const LUCK_GREEN_POOL = [{type:"plus", value:1, weight:50}, {type:"plus", value:2, weight:35}, {type:"mult", value:2, weight:15}];
 const LUCK_GOLD_POOL = [{type:"plus", value:5, weight:65}, {type:"mult", value:3, weight:35}];
 
@@ -912,14 +912,10 @@ function renderBoard() {
 
       const points = document.createElement("span");
       points.className = "tilePoints";
-      points.textContent = cell.joker ? 0 : getCellTilePoints(cell);
+      points.textContent = cell.joker ? 0 : getTilePoints(cell.letter);
       b.appendChild(points);
 
       if (cell.lucky && (cell.isNew || cell.isReplacement)) {
-        const luckyMark = document.createElement("span");
-        luckyMark.className = "luckyMark";
-        luckyMark.textContent = "🍀";
-        b.appendChild(luckyMark);
         const luckyValue = document.createElement("span");
         luckyValue.className = "luckyValue";
         luckyValue.textContent = luckyShortLabel(cell.lucky);
@@ -1035,7 +1031,7 @@ function updateRackDragGhost(tile, x, y) {
     document.body.appendChild(ghost);
   }
   ghost.querySelector('.tileLetter').textContent = displayTile(tile);
-  ghost.querySelector('.tilePoints').textContent = getDisplayedTilePoints(tile);
+  ghost.querySelector('.tilePoints').textContent = getTilePoints(tile);
   ghost.classList.toggle('luckyTile', !!getTileLucky(tile));
   ghost.classList.toggle('lucky-gold', getTileLucky(tile)?.color === 'gold');
   ghost.classList.toggle('lucky-green', getTileLucky(tile)?.color === 'green');
@@ -1070,7 +1066,7 @@ function updateBoardDragGhost(cell, x, y) {
     document.body.appendChild(ghost);
   }
   ghost.querySelector('.tileLetter').textContent = cell.letter;
-  ghost.querySelector('.tilePoints').textContent = cell.joker ? 0 : getCellTilePoints(cell);
+  ghost.querySelector('.tilePoints').textContent = cell.joker ? 0 : getTilePoints(cell.letter);
   ghost.classList.toggle('jokerTile', !!cell.joker);
   ghost.classList.toggle('luckyTile', !!cell.lucky);
   ghost.classList.toggle('lucky-gold', cell.lucky?.color === 'gold');
@@ -1306,14 +1302,10 @@ function renderRack() {
 
       const points = document.createElement("span");
       points.className = "tilePoints";
-      points.textContent = getDisplayedTilePoints(l);
+      points.textContent = getTilePoints(l);
       b.appendChild(points);
 
       if (lucky) {
-        const luckyMark = document.createElement("span");
-        luckyMark.className = "luckyMark";
-        luckyMark.textContent = "🍀";
-        b.appendChild(luckyMark);
         const luckyValue = document.createElement("span");
         luckyValue.className = "luckyValue";
         luckyValue.textContent = luckyShortLabel(lucky);
@@ -1769,7 +1761,12 @@ function finalizeMove(p) {
   selectedRackIndex = null;
 
   if (isDuelGame()) {
+    state.duelConsecutivePasses = 0;
     noteCurrentDuelTurnFinished();
+    if (isClassicGame() && (state.bag?.length || 0) === 0 && state.rack.filter(Boolean).length === 0) {
+      finishDuelByEmptyRack();
+      return;
+    }
     syncActivePlayerToPlayers();
     if (isCompletingDuelFinalTurn()) {
       const reason = state.duelGiveUpReason || "Der letzte Zug wurde gespielt.";
@@ -1939,13 +1936,46 @@ ${bestSingle}`
   };
 }
 
+function getRackValue(rack) {
+  return (rack || []).filter(Boolean).reduce((sum, tile) => sum + getTilePoints(tile), 0);
+}
 function getRackPenalty() {
   if (!state?.rack) return 0;
-  return state.rack.filter(Boolean).reduce((sum, tile) => sum + getTilePoints(tile), 0);
+  return getRackValue(state.rack);
+}
+function getDuelOpponentHandPenaltyText(winnerIndex) {
+  if (!isDuelGame()) return "";
+  const lines = [];
+  (state.players || []).forEach((player, i) => {
+    if (i === winnerIndex) return;
+    const penalty = getRackValue(player.rack);
+    if (penalty > 0) {
+      player.score = (Number(player.score) || 0) - penalty;
+      player.rack = Array.from({length: RACK_SIZE}, () => "");
+      lines.push(`${player.name}: Resthand -${penalty} Punkte`);
+    }
+  });
+  return lines.join("\n");
+}
+function finishDuelByEmptyRack() {
+  if (!isDuelGame()) return false;
+  const activeIndex = Number(state.currentPlayerIndex || 0);
+  const activeName = state.player || getCurrentPlayer()?.name || "Spieler";
+  state.score += 10;
+  if (state.lastMove) {
+    state.lastMove.points = (Number(state.lastMove.points) || 0) + 10;
+    state.lastMove.endBonus = 10;
+  }
+  syncActivePlayerToPlayers();
+  const penaltyText = getDuelOpponentHandPenaltyText(activeIndex);
+  syncActivePlayerFromPlayers();
+  const extra = penaltyText ? `\n${penaltyText}` : "";
+  finishGame(`${activeName} hat alle Steine abgelegt und der Beutel ist leer. Abschlussbonus: +10 Punkte.${extra}`);
+  return true;
 }
 
 function isGiveUpAvailable() {
-  if (!state || state.endMode !== "classic") return false;
+  if (!state || isDuelGame() || state.endMode !== "classic") return false;
   const bag = state.bag?.length || 0;
   const hand = state.rack.filter(Boolean).length;
   return bag === 0 && hand > 0;
@@ -2032,8 +2062,20 @@ function undoTurn(silent=false) {
     const c = changed[i], empty = state.rack.indexOf("");
     if (empty >= 0) state.rack[empty] = c.joker ? JOKER_TILE : makeTile(c.letter, c.lucky);
     const cell = state.board[c.index];
-    if (cell.isReplacement) { cell.letter = cell.previousLetter; cell.previousLetter = ""; cell.isReplacement = false; }
-    else { cell.letter = ""; cell.isNew = false; }
+    if (cell.isReplacement) {
+      cell.letter = cell.previousLetter;
+      cell.joker = !!cell.previousJoker;
+      cell.lucky = cloneLucky(cell.previousLucky);
+      cell.previousLetter = "";
+      cell.previousJoker = false;
+      cell.previousLucky = null;
+      cell.isReplacement = false;
+    } else {
+      cell.letter = "";
+      cell.joker = false;
+      cell.lucky = null;
+      cell.isNew = false;
+    }
   }
   selectedRackIndex = null;
   renderGame();
@@ -2048,8 +2090,13 @@ function passTurn() {
     selectedRackIndex = null;
 
     if (isDuelGame()) {
+      state.duelConsecutivePasses = (Number(state.duelConsecutivePasses) || 0) + 1;
       noteCurrentDuelTurnFinished();
       syncActivePlayerToPlayers();
+      if (state.duelConsecutivePasses >= state.players.length) {
+        finishGame("Beide Spieler haben direkt nacheinander gepasst. Das Spiel endet regulär.");
+        return;
+      }
       if (isCompletingDuelFinalTurn()) {
         const reason = state.duelGiveUpReason || "Der letzte Zug wurde gespielt.";
         clearDuelFinalTurn();

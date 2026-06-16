@@ -1,4 +1,4 @@
-# Brabbel v5.42 – Duell-Feinschliff und Beutelanzeige
+# Brabbel v5.44 – PvP-Spielende und Glücksstein-Feinschliff
 
 ## Start
 1. ZIP entpacken.
@@ -457,3 +457,14 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 - Glückssteine behalten ihre Funktion, wenn sie vor Zugabschluss wieder auf die Hand genommen werden.
 - Nach einem gültigen Zug wird die Glücksfunktion verbraucht; der Stein zählt später wieder normal.
 - Zugvorschau, Zugabschluss und letzter Zug zeigen Glücksstein-Boni mit an.
+
+
+
+## Neu in v5.44
+
+- Zu-zweit-Modus: „Aufgeben“ wird nicht mehr angeboten.
+- Zu-zweit-Modus: Wenn beide Spieler direkt nacheinander passen, endet das Spiel regulär; der höhere Punktestand gewinnt.
+- Zu-zweit-Modus klassisch: Wenn ein Spieler alle Handsteine ablegt und der Beutel leer ist, endet das Spiel sofort. Der Spieler erhält +10 Abschlussbonus.
+- Zu-zweit-Modus klassisch: Die Resthand des Gegenspielers wird bei diesem Spielende von dessen Punktestand abgezogen.
+- Goldene Glückssteine erscheinen etwas häufiger.
+- Glücksstein-Layout beruhigt: Buchstabe wieder mittig, normaler Punktwert unten rechts, Bonuswert oben links ohne Rahmen. Das zusätzliche Kleeblatt unten links entfällt.

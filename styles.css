@@ -1828,3 +1828,46 @@ body.infoCollapsed .board.boardLarge .cell {
   left: 3px;
   bottom: 2px;
 }
+
+
+/* Brabbel v5.44: Glücksstein-Layout beruhigt */
+.luckyMark {
+  display: none !important;
+}
+.luckyValue {
+  position: absolute;
+  left: 5px;
+  top: 4px;
+  min-width: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: rgba(37,32,24,.78);
+  font-size: .72rem;
+  line-height: 1;
+  font-weight: 950;
+  z-index: 4;
+  pointer-events: none;
+}
+.cell .luckyValue {
+  left: 6px;
+  top: 4px;
+  font-size: .72rem;
+}
+.rackPanelV54 .tile .luckyValue {
+  left: 6px;
+  top: 5px;
+  font-size: .82rem;
+}
+.board.boardMedium .cell .luckyValue,
+.board.boardLarge .cell .luckyValue {
+  left: 4px;
+  top: 3px;
+  font-size: .58rem;
+}
+.tile.luckyTile::before,
+.cell.luckyTile::before,
+.rackDragGhost.luckyTile::before {
+  opacity: .15;
+}
