@@ -1871,3 +1871,53 @@ body.infoCollapsed .board.boardLarge .cell {
 .rackDragGhost.luckyTile::before {
   opacity: .15;
 }
+
+/* Brabbel v5.45: Glücksstein-Zahlen dürfen Buchstaben nicht verschieben */
+.tile.luckyTile .tileLetter,
+.cell.luckyTile .tileLetter,
+.rackDragGhost.luckyTile .tileLetter {
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  display: block !important;
+  line-height: 1 !important;
+  z-index: 3 !important;
+  pointer-events: none !important;
+  font-size: .92em !important;
+}
+.tile.luckyTile .tilePoints,
+.cell.luckyTile .tilePoints,
+.rackDragGhost.luckyTile .tilePoints {
+  position: absolute !important;
+  left: auto !important;
+  top: auto !important;
+  transform: none !important;
+  right: 5px !important;
+  bottom: 4px !important;
+  z-index: 4 !important;
+  display: block !important;
+  line-height: 1 !important;
+}
+.cell.luckyTile .tilePoints {
+  right: 6px !important;
+  bottom: 4px !important;
+}
+.rackPanelV54 .tile.luckyTile .tilePoints {
+  right: 6px !important;
+  bottom: 5px !important;
+}
+.board.boardMedium .cell.luckyTile .tilePoints,
+.board.boardLarge .cell.luckyTile .tilePoints {
+  right: 4px !important;
+  bottom: 3px !important;
+}
+.tile.luckyTile .luckyValue,
+.cell.luckyTile .luckyValue,
+.rackDragGhost.luckyTile .luckyValue {
+  position: absolute !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  z-index: 4 !important;
+}

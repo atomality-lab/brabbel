@@ -1,4 +1,4 @@
-# Brabbel v5.44 – PvP-Spielende und Glücksstein-Feinschliff
+# Brabbel v5.45 – Glücksstein-Layoutkorrektur
 
 ## Start
 1. ZIP entpacken.
@@ -468,3 +468,11 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 - Zu-zweit-Modus klassisch: Die Resthand des Gegenspielers wird bei diesem Spielende von dessen Punktestand abgezogen.
 - Goldene Glückssteine erscheinen etwas häufiger.
 - Glücksstein-Layout beruhigt: Buchstabe wieder mittig, normaler Punktwert unten rechts, Bonuswert oben links ohne Rahmen. Das zusätzliche Kleeblatt unten links entfällt.
+
+
+
+## Neu in v5.45
+
+- Glücksstein-Darstellung korrigiert: Der Buchstabe bleibt auch bei Bonuswert oben links exakt mittig.
+- Der normale Punktwert sitzt wieder unten rechts und wird nicht mehr neben den Buchstaben geschoben.
+- Die Glücksstein-Zahlen wurden per CSS stärker voneinander getrennt, damit Bonus, Buchstabe und Punktwert nicht kollidieren.
