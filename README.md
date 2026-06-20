@@ -1,4 +1,4 @@
-# Brabbel v5.47 – PvP-Bonussteine
+# Brabbel v5.48 – Bonussystem-Feinschliff
 
 ## Start
 1. ZIP entpacken.
@@ -492,10 +492,27 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 
 
 
+
+## Neu in v5.48
+
+- Stern in der Brettmitte zählt jetzt als 2W, also doppelter Wortwert.
+- Stern-Sonderfeldmuster beim 13×13-Brett ergänzt zusätzliche 2W-Felder rund um die Mitte.
+- Rundenbasiert bietet jetzt nur noch 10, 15 oder 20 Runden.
+- PvP-Passe zieht keine neuen Steine mehr, die Hand bleibt erhalten.
+- Einzelspieler-Passe beendet das Spiel nach Bestätigung.
+- Resthand-Abzüge berücksichtigen Glücksstein-Bonuswerte.
+- „Alle Steine tauschen“ wird bei leerem Beutel zu +5 Punkten.
+- Handtausch wurde aus den PvP-Boni entfernt.
+- PvP-Boni unterscheiden jetzt Abzug und Punktedieb. Punktedieb überträgt die tatsächlich abgezogenen Punkte auf den aktiven Spieler.
+- Gegner erhalten beim nächsten Wechsel ein Hinweis-Popup zu Abzug oder Punktedieb.
+- Bonusauslösung beim leeren Brett ist leichter: 20+ Punkte statt 30+ Punkte.
+- Neuer Bonusstein: Wertverdoppler ×2.
+- Einzelner Steintausch heißt jetzt „Buchstabenwandler“. Die vereinfachte Ein-Dialog-Bedienung ist als nächster UI-Schritt vorgesehen.
+
 ## Neu in v5.47
 
 - Im Zu-zweit-Modus können Bonussteine jetzt auch Duell-Boni sein.
-- Neue Duell-Boni: Punktedieb −5, Punktedieb −10, Handtausch und Zwangspause.
+- Neue Duell-Boni: Abzug −5, Abzug −10, Punktedieb −5, Punktedieb −10 und Zwangspause.
 - Duell-Bonussteine erscheinen nur im Zu-zweit-Modus und nur bei aktivem Modus „Glücks- und Bonussteine“.
 - Duell-Boni haben das gleiche Streifenprinzip wie normale Bonussteine, aber eine andere Farbwelt.
 - Zwangspause lässt den Gegenspieler beim nächsten Übergabeschirm automatisch aussetzen.
