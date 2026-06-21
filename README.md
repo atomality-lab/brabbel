@@ -1,4 +1,4 @@
-# Brabbel v5.51 – Spielende & Speicherzeit
+# Brabbel v5.52 – UI für Legetipps
 
 ## Start
 1. ZIP entpacken.
@@ -493,6 +493,19 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 
 
 
+
+
+## Neu in v5.52
+
+- Handsteinbox sitzt jetzt direkt unter dem Spielbrett.
+- Sortierleiste wurde um einen Tipp-Button mit Glühbirne ergänzt.
+- Die künftige Tipp-Schublade ist als Platzhalter vorbereitet.
+- Statusbox bleibt im 2×2-Aufbau: Beutel, Runde, Aktuell und Spielername mit Punktestand.
+- Spielernamen sind bereits bei der Eingabe auf 8 Zeichen begrenzt.
+- Zug-Aktionsbuttons sind größer und stärker symbolbasiert: Abbrechen, Zug durchführen und Passe.
+- „Infos ein-/ausblenden“ sitzt jetzt unten neben Hauptmenü und Speichern.
+- „Alle Steine tauschen“ erklärt nun vorab: „Deine Handsteine werden ausgetauscht.“
+- Der Hinweis „Letzte Runde!“ wird beim Start der letzten Runde deutlicher angezeigt.
 
 
 ## Neu in v5.51

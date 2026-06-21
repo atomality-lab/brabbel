@@ -25,7 +25,7 @@ const BONUS_STONE_DEFS = {
   points10: {type:"points10", symbol:"+10", name:"+10 Punkte", help:"Nach Zugabschluss erhältst du zusätzlich +10 Punkte.", kind:"points", value:10, weight:17},
   points20: {type:"points20", symbol:"+20", name:"+20 Punkte", help:"Nach Zugabschluss erhältst du zusätzlich +20 Punkte.", kind:"points", value:20, weight:6},
   double_turn: {type:"double_turn", symbol:"×2", name:"Wertverdoppler", label:"Werte", help:"Der Wert deines abgeschlossenen Zugs wird verdoppelt.", kind:"multiplier", value:2, weight:8},
-  swap_all: {type:"swap_all", symbol:"🔄", name:"Alle Steine tauschen", help:"In der klassischen Variante wandern deine aktuellen Handsteine zurück in den Beutel. Danach ziehst du eine neue Hand. Ist der Beutel leer, wird der Bonus zu +5 Punkten.", kind:"action", weight:18},
+  swap_all: {type:"swap_all", symbol:"🔄", name:"Alle Steine tauschen", help:"Deine Handsteine werden ausgetauscht. In der klassischen Variante wandern deine aktuellen Handsteine zurück in den Beutel. Danach ziehst du eine neue Hand. Ist der Beutel leer, wird der Bonus zu +5 Punkten.", kind:"action", weight:18},
   swap_one: {type:"swap_one", symbol:"🅰️⇄?", name:"Buchstabenwandler", label:"Wandeln", help:"Wähle einen Handstein aus und verwandle ihn in einen Buchstaben deiner Wahl. In der klassischen Variante wandert der alte Stein zurück in den Beutel.", kind:"action", weight:17},
   shield: {type:"shield", symbol:"🛡️0", name:"Punkteschutz", help:"Am Spielende wird dir der Wert deiner übrigen Handsteine einmal nicht abgezogen. Der Bonus wird automatisch verwendet.", kind:"passive", weight:10},
   pvp_deduct5: {type:"pvp_deduct5", symbol:"👤−5", name:"Abzug −5", help:"Dem Gegenspieler werden 5 Punkte abgezogen. Der Punktestand fällt nicht unter 0.", kind:"pvp", target:"opponent", value:5, steal:false, weight:30},
@@ -883,11 +883,16 @@ function consumePendingPlayerNotice() {
   syncActivePlayerToPlayers();
   return text;
 }
+function limitPlayerName(name, fallback="Spieler") {
+  const clean = String(name || "").trim();
+  const base = clean || fallback || "Spieler";
+  return base.slice(0, 8) || "Spieler";
+}
 function getDuelPlayerNames() {
   const main = localStorage.getItem(K.player) || "Spieler 1";
-  let p1 = ($("duelPlayer1Input")?.value || localStorage.getItem(K.duelPlayer1) || main || "Spieler 1").trim() || "Spieler 1";
-  let p2 = ($("duelPlayer2Input")?.value || localStorage.getItem(K.duelPlayer2) || "Spieler 2").trim() || "Spieler 2";
-  if (p1 === p2) p2 = `${p2} 2`;
+  let p1 = limitPlayerName($("duelPlayer1Input")?.value || localStorage.getItem(K.duelPlayer1) || main || "Spieler 1", "Spieler 1");
+  let p2 = limitPlayerName($("duelPlayer2Input")?.value || localStorage.getItem(K.duelPlayer2) || "Spieler 2", "Spieler 2");
+  if (p1 === p2) p2 = limitPlayerName(`${p2}2`, "Spieler 2");
   return [p1, p2];
 }
 function saveDuelPlayerNames(names) {
@@ -1011,7 +1016,7 @@ function init() {
   localStorage.getItem(K.player) ? showScreen("screen-menu") : showScreen("screen-welcome");
   document.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => showScreen(b.dataset.go)));
   $("savePlayerBtn").addEventListener("click", () => {
-    localStorage.setItem(K.player, $("playerNameInput").value.trim() || "Spieler");
+    localStorage.setItem(K.player, limitPlayerName($("playerNameInput").value, "Spieler"));
     showScreen("screen-menu");
   });
   $("newGameMenuBtn").addEventListener("click", () => { prepareNewGameForm(); showScreen("screen-newgame"); });
@@ -1038,6 +1043,7 @@ function init() {
   $("sortPointsBtn").addEventListener("click", () => sortRack("points"));
   $("sortVowelsBtn").addEventListener("click", () => sortRack("vowels"));
   $("shuffleRackBtn").addEventListener("click", shuffleRack);
+  $("hintBtn")?.addEventListener("click", toggleTipDrawer);
   $("verifyYesBtn").onclick = window.wwAcceptUnknownWord;
   $("verifyNoBtn").onclick = window.wwRejectUnknownWord;
   $("messageOkBtn").addEventListener("click", () => {
@@ -1375,7 +1381,8 @@ function renderTurnStatus() {
   const current = p.changedCells.length && getMoveStatus(p) !== "error" ? p.points : 0;
   if ($("bagStatusOut")) $("bagStatusOut").textContent = getBagStatusText();
   if ($("currentMoveOut")) $("currentMoveOut").textContent = `${current} Pkt.`;
-  if ($("totalScoreOut")) $("totalScoreOut").textContent = isDuelGame() ? `${state.player}: ${state.score} Pkt.` : `${state.score} Pkt.`;
+  if ($("totalScoreLabel")) $("totalScoreLabel").textContent = limitPlayerName(state.player || localStorage.getItem(K.player) || "Gesamt", "Gesamt");
+  if ($("totalScoreOut")) $("totalScoreOut").textContent = `${state.score} Pkt.`;
   if ($("roundStatusOut")) $("roundStatusOut").textContent = getRoundStatusText();
   applyMoveStatus(p);
 }
@@ -2247,13 +2254,20 @@ function formatMoveSuccessText(p) {
     .replace(/^Du erhältst .*?\n\n/, "");
   return `${main}\nGesamt: ${state.score} Pkt.\n\n${details}`;
 }
-function getLastRoundNotice() {
-  if (!state || state.endMode !== "rounds") return "";
-  return Number(state.round) === Number(state.roundLimit) ? "Letzte Runde!" : "";
+function consumeLastRoundNotice() {
+  if (!state || state.endMode !== "rounds") return null;
+  if (Number(state.round) !== Number(state.roundLimit)) return null;
+  if (state.lastRoundNoticeShown) return null;
+  state.lastRoundNoticeShown = true;
+  return {
+    title: "Letzte Runde!",
+    text: "Jetzt beginnt die letzte Runde. Danach wird das Spiel beendet."
+  };
 }
-function appendLastRoundNotice(text) {
-  const notice = getLastRoundNotice();
-  return notice ? `${text}\n\n${notice}` : text;
+function withLastRoundNotice(title, text) {
+  const notice = consumeLastRoundNotice();
+  if (!notice) return {title, text};
+  return {title: notice.title, text: `${notice.text}\n\n${title}\n${text}`};
 }
 function finalizeMove(p) {
   state.score += p.points;
@@ -2302,14 +2316,14 @@ ${state.player} hat den letzten Zug gespielt.`);
     }
     advanceDuelTurn();
     saveAutosave();
-    if (!checkGameEndAfterTurn()) showHandoffScreen(title, appendLastRoundNotice(text));
+    if (!checkGameEndAfterTurn()) { const noticeMove = withLastRoundNotice(title, text); showHandoffScreen(noticeMove.title, noticeMove.text); }
     return;
   }
 
   state.round += 1;
   renderGame();
   saveAutosave();
-  if (!checkGameEndAfterTurn()) message(title, appendLastRoundNotice(text));
+  if (!checkGameEndAfterTurn()) { const noticeMove = withLastRoundNotice(title, text); message(noticeMove.title, noticeMove.text); }
 }
 
 
@@ -2688,7 +2702,7 @@ ${state.player} hat gepasst. Das Spiel endet jetzt.`);
     }
     advanceDuelTurn();
     saveAutosave();
-    if (!checkGameEndAfterTurn()) showHandoffScreen("Runde ausgesetzt", appendLastRoundNotice("Gepasst. Die Handsteine bleiben erhalten."));
+    if (!checkGameEndAfterTurn()) { const noticePass = withLastRoundNotice("Runde ausgesetzt", "Gepasst. Die Handsteine bleiben erhalten."); showHandoffScreen(noticePass.title, noticePass.text); }
   };
   const text = changed
     ? "Du hast in dieser Runde bereits Buchstaben gelegt. Wenn du passt, werden sie zurückgenommen. Deine Handsteine bleiben erhalten. Wirklich passen?"
@@ -2975,6 +2989,11 @@ function toggleInfoPanel() {
   infoPanelCollapsed = !infoPanelCollapsed;
   localStorage.setItem(K.infoPanelCollapsed, infoPanelCollapsed ? "true" : "false");
   applyInfoPanelSetting();
+}
+function toggleTipDrawer() {
+  const drawer = $("tipDrawer");
+  if (!drawer) return;
+  drawer.classList.toggle("hidden");
 }
 
 function animationsEnabled() {

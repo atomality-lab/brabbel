@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"><meta name="theme-color" content="#0f766e"><title>Brabbel v5.51</title><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="stylesheet" href="styles.css"></head>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"><meta name="theme-color" content="#0f766e"><title>Brabbel v5.52</title><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="stylesheet" href="styles.css"></head>
 <body><div id="app">
-<section id="screen-welcome" class="screen active"><div class="card hero"><h1>Brabbel</h1><p class="lead">Ein ruhiges Wortspiel fürs Tablet: legen, wandeln, prüfen, weiterspielen.</p><label class="biglabel">Spielername<input id="playerNameInput" maxlength="24" placeholder="Name eingeben"></label><button id="savePlayerBtn" class="primary wide">Weiter</button></div></section>
+<section id="screen-welcome" class="screen active"><div class="card hero"><h1>Brabbel</h1><p class="lead">Ein ruhiges Wortspiel fürs Tablet: legen, wandeln, prüfen, weiterspielen.</p><label class="biglabel">Spielername<input id="playerNameInput" maxlength="8" placeholder="Name eingeben"></label><button id="savePlayerBtn" class="primary wide">Weiter</button></div></section>
 <section id="screen-menu" class="screen"><div class="card hero"><h1>Brabbel</h1><p id="helloLine" class="lead"></p><div class="menuButtons"><button id="newGameMenuBtn" class="primary wide">Neues Spiel</button><button id="continueMenuBtn" class="wide">Spiel fortsetzen</button><button id="leaderboardMenuBtn" class="wide">Bestenliste</button><button id="lexiconMenuBtn" class="wide">Wortschatz</button>
           <button id="settingsMenuBtn" class="wide">Einstellungen</button><button data-go="screen-rules" class="wide">Spielregeln</button><button data-go="screen-about" class="wide">Über</button><button id="exitAppBtn" class="wide danger">App beenden</button></div></div></section>
 <section id="screen-newgame" class="screen"><div class="card"><h1>Neues Spiel</h1>
 <label class="biglabel">Spielmodus<select id="playModeSelect"><option value="solo" selected>Einzel</option><option value="duel">Zu zweit · Tablet weitergeben</option><option value="ai" disabled>Spieler vs. Dr. Brabbel · kommt später</option></select></label>
-<div id="duelNamesWrap" class="duelNamesWrap hidden"><label class="biglabel">Name Spieler 1<input id="duelPlayer1Input" maxlength="24" placeholder="Spieler 1"></label><label class="biglabel">Name Spieler 2<input id="duelPlayer2Input" maxlength="24" placeholder="Spieler 2"></label><p class="muted">Spieler 1 wird mit deinem Hauptnamen vorausgefüllt. Die Zu-zweit-Namen werden separat gespeichert.</p></div>
+<div id="duelNamesWrap" class="duelNamesWrap hidden"><label class="biglabel">Name Spieler 1<input id="duelPlayer1Input" maxlength="8" placeholder="Spieler 1"></label><label class="biglabel">Name Spieler 2<input id="duelPlayer2Input" maxlength="8" placeholder="Spieler 2"></label><p class="muted">Spieler 1 wird mit deinem Hauptnamen vorausgefüllt. Die Zu-zweit-Namen werden separat gespeichert.</p></div>
 <label class="biglabel">Brettgröße<select id="boardSizeSelect"><option value="9" selected>9 × 9 · kurzes Spiel</option><option value="11">11 × 11 · ausgewogen</option><option value="13">13 × 13 · langes Spiel</option></select></label>
 <label class="biglabel">Spielbrett<select id="gameModeSelect"><option value="empty">Leeres Brett</option><option value="letters">Mit Buchstaben</option><option value="special">Mit Sonderfeldern</option></select></label>
 <div id="specialLayoutWrap" class="biglabel hidden"><span>Sonderfeld-Muster</span><div class="layoutPickGrid"><label class="layoutPick"><input type="radio" name="specialLayout" value="x" checked><span>X-Form</span></label><label class="layoutPick"><input type="radio" name="specialLayout" value="star"><span>Stern-Form</span></label><label class="layoutPick"><input type="radio" name="specialLayout" value="concentric"><span>Konzentrisch</span></label><label class="layoutPick"><input type="radio" name="specialLayout" value="random"><span>Zufall</span></label></div></div>
@@ -138,7 +138,7 @@
     <section id="screen-about" class="screen">
       <div class="card wideCard infoPage">
         <h1>Über Brabbel</h1>
-        <div class="aboutHero"><strong>Brabbel v5.51</strong><span>Stand: 16.06.2026</span><span>Erstellt von Atomality</span></div>
+        <div class="aboutHero"><strong>Brabbel v5.52</strong><span>Stand: 16.06.2026</span><span>Erstellt von Atomality</span></div>
 
         <h2>Was ist Brabbel?</h2>
         <p>Brabbel ist ein deutschsprachiges Wortspiel fürs Tablet. Es ist als ruhiges, gut lesbares Spiel mit großen Bedienelementen gedacht.</p>
@@ -220,23 +220,7 @@
     <section id="screen-game" class="screen gameScreen">
   <main class="gameLayoutV54">
     <section class="leftGameColumn">
-            <div id="board" class="board" aria-label="Spielfeld"></div>
-
-      <div class="boardUnderRow">
-        <section class="panel turnStatusPanel" aria-label="Spielstand und aktueller Zug">
-          <div><strong>Beutel</strong><span id="bagStatusOut">–</span></div>
-          <div id="currentMoveBox" class="currentMoveBox moveStatus-empty"><strong id="currentMoveLabel">Aktuell</strong><span id="currentMoveOut">0 Pkt.</span></div>
-          <div><strong>Gesamt</strong><span id="totalScoreOut">0 Pkt.</span></div>
-          <div><strong>Runde</strong><span id="roundStatusOut">1</span></div>
-        </section>
-
-        <section class="panel controls controlsPrimaryV54 controlsPrimaryV518">
-          <button id="undoBtn" class="wide actionSymbolBtn undoActionButton" title="Zug zurücknehmen" aria-label="Zug zurücknehmen"><span>Zug</span><span class="actionIcon dangerIcon">✕</span></button>
-          <button id="commitMoveBtn" class="primary wide actionSymbolBtn" title="Zug abschließen" aria-label="Zug abschließen"><span>Zug</span><span class="actionIcon okIcon">✓</span></button>
-          <button id="passBtn" class="wide" title="Passe" aria-label="Passe">✋ Passe</button>
-          <button id="toggleInfoPanelBtn" type="button" class="wide infoToggleButton">Infos anzeigen</button>
-        </section>
-      </div>
+      <div id="board" class="board" aria-label="Spielfeld"></div>
 
       <section class="panel rackPanelV54" aria-label="Handsteine">
         <div class="rackWithBonus"><div id="bonusRackSlots" class="bonusRackSlots hidden" aria-label="Bonussteine"></div><div id="rack" class="rack"></div></div>
@@ -244,13 +228,36 @@
           <button id="sortPointsBtn" type="button" title="Nach Punktwert sortieren, hoch nach niedrig">8→1</button>
           <button id="sortVowelsBtn" type="button" title="Vokale zuerst">AEIOU</button>
           <button id="shuffleRackBtn" type="button" title="Zufällig anordnen">🎲</button>
+          <button id="hintBtn" type="button" class="tipButton" title="Legetipps anzeigen">💡</button>
         </div>
+        <section id="tipDrawer" class="tipDrawer hidden" aria-label="Legetipps">
+          <div class="tipDrawerHeader"><strong>Legetipps</strong><span>Vorschläge erscheinen hier.</span></div>
+          <div class="tipCards">
+            <div class="tipCard muted"><strong>💡 Tipp-Schublade</strong><span>In der nächsten Version findest du hier Wörter zum Anzeigen oder Legen.</span></div>
+          </div>
+        </section>
       </section>
+
+      <div class="boardUnderRow">
+        <section class="panel turnStatusPanel" aria-label="Spielstand und aktueller Zug">
+          <div><strong>Beutel</strong><span id="bagStatusOut">–</span></div>
+          <div><strong>Runde</strong><span id="roundStatusOut">1</span></div>
+          <div id="currentMoveBox" class="currentMoveBox moveStatus-empty"><strong id="currentMoveLabel">Aktuell</strong><span id="currentMoveOut">0 Pkt.</span></div>
+          <div><strong id="totalScoreLabel">Gesamt</strong><span id="totalScoreOut">0 Pkt.</span></div>
+        </section>
+
+        <section class="panel controls controlsPrimaryV54 controlsPrimaryV518">
+          <button id="undoBtn" class="wide actionSymbolBtn actionIconOnly undoActionButton" title="Zug abbrechen" aria-label="Zug abbrechen"><span class="bigActionIcon dangerIcon">✕</span><span class="actionCaption">Abbrechen</span></button>
+          <button id="commitMoveBtn" class="primary wide actionSymbolBtn actionIconOnly commitActionButton" title="Zug durchführen" aria-label="Zug durchführen"><span class="bigActionIcon okIcon">✓</span><span class="actionCaption">Zug durchführen</span></button>
+          <button id="passBtn" class="wide actionSymbolBtn actionIconOnly passActionButton" title="Passe" aria-label="Passe"><span class="bigActionIcon">✋</span><span class="actionCaption">Passe</span></button>
+        </section>
+      </div>
 
       <section id="bottomGameControls" class="panel controls controlsSecondaryV55">
         <button id="giveUpBtn" type="button" class="wide danger hidden">Aufgeben</button>
         <button id="endGameBtn" type="button" class="wide">Zum Hauptmenü</button>
         <button id="saveGameBtn" type="button" class="wide">Spiel speichern</button>
+        <button id="toggleInfoPanelBtn" type="button" class="wide infoToggleButton">Infos anzeigen</button>
       </section>
     </section>
 
