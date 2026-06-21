@@ -2582,3 +2582,68 @@ body.infoCollapsed .controlsSecondaryV55 {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* Brabbel v5.56: Drag & Auswahlkorrektur */
+.rackDragGhost,
+.rackDragGhost.luckyTile,
+.rackDragGhost.lucky-green,
+.rackDragGhost.lucky-gold {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 999999 !important;
+  pointer-events: none !important;
+}
+.rackDragGhost .tileLetter,
+.rackDragGhost .tilePoints,
+.rackDragGhost .luckyValue {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+.rackPanelV54 .tile.active,
+.tile.active {
+  outline: 0 !important;
+  transform: none !important;
+  background: var(--tile) !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(0, 109, 119, .16), 0 3px 8px rgba(0,0,0,.10) !important;
+}
+.rackPanelV54 .tile.active.lucky-green,
+.tile.active.lucky-green {
+  background: linear-gradient(135deg, #fafff6, #dcfce7) !important;
+  border-color: var(--accent) !important;
+}
+.rackPanelV54 .tile.active.lucky-gold,
+.tile.active.lucky-gold {
+  background: linear-gradient(135deg, #fffdf2, #ffe8a3) !important;
+  border-color: var(--accent) !important;
+}
+.rackPanelV54 .tile.active::after,
+.tile.active::after {
+  content: "✓";
+  position: absolute;
+  right: -7px;
+  top: -7px;
+  width: 21px;
+  height: 21px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: white;
+  border: 2px solid white;
+  font-size: .72rem;
+  line-height: 1;
+  font-weight: 1000;
+  box-shadow: 0 2px 5px rgba(0,0,0,.18);
+  z-index: 8;
+  pointer-events: none;
+}
+.rackDragging .tile.active,
+.rackDragging .tile.dragging {
+  opacity: .72 !important;
+  transform: none !important;
+}
+.boardDragging .cell.boardTileDragging {
+  opacity: .45 !important;
+}

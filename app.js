@@ -1544,11 +1544,23 @@ function updateRackDragGhost(tile, x, y) {
     ghost.appendChild(points);
     document.body.appendChild(ghost);
   }
+  const lucky = getTileLucky(tile);
   ghost.querySelector('.tileLetter').textContent = displayTile(tile);
   ghost.querySelector('.tilePoints').textContent = getTilePoints(tile);
-  ghost.classList.toggle('luckyTile', !!getTileLucky(tile));
-  ghost.classList.toggle('lucky-gold', getTileLucky(tile)?.color === 'gold');
-  ghost.classList.toggle('lucky-green', getTileLucky(tile)?.color === 'green');
+  let luckyValue = ghost.querySelector('.luckyValue');
+  if (lucky) {
+    if (!luckyValue) {
+      luckyValue = document.createElement('span');
+      luckyValue.className = 'luckyValue';
+      ghost.appendChild(luckyValue);
+    }
+    luckyValue.textContent = luckyShortLabel(lucky);
+  } else {
+    luckyValue?.remove();
+  }
+  ghost.classList.toggle('luckyTile', !!lucky);
+  ghost.classList.toggle('lucky-gold', lucky?.color === 'gold');
+  ghost.classList.toggle('lucky-green', lucky?.color === 'green');
   ghost.style.left = `${x}px`;
   ghost.style.top = `${y}px`;
 }
@@ -1664,6 +1676,45 @@ function moveBoardTile(fromIndex, toIndex) {
   renderGame();
 }
 
+function isPointInRackReturnArea(x, y) {
+  const rackPanel = document.querySelector('.rackPanelV54');
+  if (!rackPanel) return false;
+  const rect = rackPanel.getBoundingClientRect();
+  return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+}
+function returnBoardTileToRack(boardIndex) {
+  if (!state) return false;
+  const cell = state.board?.[Number(boardIndex)];
+  if (!cell || !(cell.isNew || cell.isReplacement) || !cell.letter) return false;
+  const empty = state.rack.indexOf("");
+  if (empty < 0) {
+    message("Hand voll", "In deiner Hand ist kein freier Platz für diesen Stein.");
+    return false;
+  }
+  state.rack[empty] = cell.joker ? JOKER_TILE : makeTile(cell.letter, cell.lucky);
+  if (cell.isReplacement) {
+    cell.letter = cell.previousLetter;
+    cell.joker = !!cell.previousJoker;
+    cell.lucky = cloneLucky(cell.previousLucky);
+    cell.previousLetter = "";
+    cell.previousJoker = false;
+    cell.previousLucky = null;
+    cell.isReplacement = false;
+    cell.isNew = false;
+    cell.settled = true;
+  } else {
+    cell.letter = "";
+    cell.joker = false;
+    cell.lucky = null;
+    cell.isNew = false;
+    cell.isReplacement = false;
+    cell.settled = false;
+  }
+  selectedRackIndex = null;
+  renderGame();
+  return true;
+}
+
 function beginBoardPointer(event, idx) {
   if (selectedRackIndex !== null) return;
   const cell = state?.board?.[idx];
@@ -1699,7 +1750,11 @@ function endBoardPointer(event) {
   if (!drag.moved) return;
   suppressBoardClick = true;
   const boardTarget = boardCellAtPoint(event.clientX, event.clientY);
-  if (boardTarget !== null && boardTarget !== drag.idx) moveBoardTile(drag.idx, boardTarget);
+  if (boardTarget !== null && boardTarget !== drag.idx) {
+    moveBoardTile(drag.idx, boardTarget);
+  } else if (isPointInRackReturnArea(event.clientX, event.clientY)) {
+    returnBoardTileToRack(drag.idx);
+  }
   setTimeout(() => { suppressBoardClick = false; }, 0);
   event.preventDefault();
 }

@@ -1,4 +1,4 @@
-# Brabbel v5.55 – stabile Spielansicht
+# Brabbel v5.56 – Drag & Auswahlkorrektur
 
 ## Start
 1. ZIP entpacken.
@@ -493,6 +493,15 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 
 
 
+
+
+## Neu in v5.56
+
+- Glückssteine bleiben beim Ziehen wieder sichtbar am Finger, inklusive Bonuswert.
+- Auch Glückssteine, die auf dem Brett verschoben werden, bekommen wieder eine sichtbare Drag-Kachel.
+- Die hellgrüne Auswahlfüllung wurde entfernt, damit sie sich nicht mit Glückssteinen beißt.
+- Ausgewählte Handsteine erhalten stattdessen eine dezente türkisfarbene Markierung mit kleinem Haken.
+- Wenn ein im aktuellen Zug gelegter Stein vom Brett nach unten in die Handsteinbox gezogen wird, wandert er zurück auf die Hand.
 
 
 ## Neu in v5.55
