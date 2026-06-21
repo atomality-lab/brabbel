@@ -2223,3 +2223,109 @@ body.infoCollapsed .controlsSecondaryV55 {
   .controlsPrimaryV518 button { min-height: 70px; }
   .rackSortControls { grid-template-columns: repeat(2, 1fr) !important; }
 }
+
+/* Brabbel v5.53: UI-Nachsteuerung */
+.inputHint {
+  display: block;
+  margin-top: -.2rem;
+  color: var(--muted);
+  font-size: .88rem;
+  font-weight: 700;
+}
+.rackPanelV54 {
+  display: grid;
+  gap: .35rem;
+}
+.rackWithBonus {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: .55rem;
+  align-items: end;
+}
+.rackWithBonus .rack {
+  justify-content: flex-end;
+}
+.rackToolRow {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: .55rem;
+  align-items: stretch;
+}
+.rackMoveBox {
+  min-width: 132px;
+  min-height: 44px;
+  background: white;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  padding: .28rem .42rem;
+}
+.rackMoveBox strong {
+  display: block;
+  color: var(--muted);
+  font-size: .76rem;
+  line-height: 1.05;
+}
+.rackMoveBox span {
+  display: block;
+  font-weight: 1000;
+  font-size: 1rem;
+  line-height: 1.1;
+  margin-top: .1rem;
+}
+.rackToolRow .rackSortControls {
+  margin-top: 0;
+  justify-self: end;
+  width: min(430px, 100%);
+}
+.turnStatusPanel {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+.boardUnderRow {
+  grid-template-columns: minmax(230px, .86fr) minmax(380px, 1.14fr) !important;
+}
+.rightGameColumn {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+.leftGameColumn {
+  min-width: 0;
+}
+.gameLayoutV54 {
+  align-items: start;
+}
+.previewPanelV54,
+.lastMovePanelV54,
+.bagLettersPanel {
+  position: relative;
+  z-index: 1;
+}
+@media (min-width: 700px) and (max-width: 1050px) {
+  .gameLayoutV54 {
+    grid-template-columns: minmax(0, 1fr) minmax(245px, 300px) !important;
+  }
+  .boardUnderRow {
+    grid-template-columns: minmax(210px, .85fr) minmax(320px, 1.15fr) !important;
+  }
+  .rackToolRow .rackSortControls {
+    width: min(390px, 100%);
+  }
+  .rackMoveBox {
+    min-width: 118px;
+  }
+}
+@media (max-width: 699px) {
+  .rackWithBonus,
+  .rackToolRow {
+    grid-template-columns: 1fr;
+  }
+  .rackWithBonus .rack,
+  .rackToolRow .rackSortControls {
+    justify-content: center;
+    justify-self: stretch;
+    width: 100%;
+  }
+  .rackMoveBox {
+    min-width: 0;
+  }
+}

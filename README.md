@@ -1,4 +1,4 @@
-# Brabbel v5.52 – UI für Legetipps
+# Brabbel v5.53 – UI-Nachsteuerung
 
 ## Start
 1. ZIP entpacken.
@@ -493,6 +493,16 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 
 
 
+
+
+## Neu in v5.53
+
+- Bei der Namenseingabe steht jetzt sichtbar der Hinweis „Maximal 8 Zeichen“.
+- Der Hinweis vor der letzten Runde wurde zu einem deutlichen Pop-up „Achtung, letzter Zug!“ und erscheint pro Spieler vor dem letzten eigenen Zug.
+- Die Anzeige „Aktuell/Gültig/Prüfen/Fehler“ liegt jetzt unter den Bonussteinen.
+- Sortierbuttons und Tipp-Button liegen rechtsbündig unter den Handsteinen.
+- Die Infobox zeigt nun Beutel, Runde, Gegenspieler-Punkte und den aktuellen Spieler mit Punkten.
+- Die Info-Spalte wurde stabilisiert, damit sie beim Einblenden nicht unter dem Spielbrett überlappt.
 
 
 ## Neu in v5.52
