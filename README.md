@@ -1,4 +1,4 @@
-# Brabbel v5.62 – PvP-Tipps als Bonus
+# Brabbel v5.63 – Umlaute & persönliche Legetipps
 
 ## Start
 1. ZIP entpacken.
@@ -498,6 +498,14 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 
 
 
+
+
+## Neu in v5.63
+
+- Legetipps berücksichtigen Ä, Ö, Ü und ß als eigene Spielsteine.
+- Wörter mit AE/OE/UE/SS können nun auch mit passenden Umlaut- oder ß-Steinen vorgeschlagen werden.
+- Persönliche Wörter werden in der Tipp-Suche bevorzugt und in der Tippkarte markiert.
+- Kleine Suchverbesserung für die Kandidatenauswahl.
 
 ## Neu in v5.62
 

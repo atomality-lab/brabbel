@@ -3111,6 +3111,8 @@ function toggleInfoPanel() {
 const TIP_MAX_RESULTS = 3;
 const TIP_MAX_CANDIDATES = 9000;
 const TIP_MAX_TESTS = 65000;
+const TIP_FIRST_MOVE_MAX_CANDIDATES = 2600;
+const TIP_FIRST_MOVE_MAX_TESTS = 22000;
 const TIP_ALWAYS_INCLUDE_LENGTH_AFTER_FIRST_MOVE = 5;
 
 function updateTipButtonState() {
@@ -3157,7 +3159,7 @@ function renderTipSuggestions() {
     cards.innerHTML = lastTipSuggestions.map((tip, idx) => `
       <div class="tipCard suggestionCard">
         <strong>${escapeHtml(tip.word)} · ${tip.points} Pkt.</strong>
-        <span>${escapeHtml(tip.directionLabel)} ab ${escapeHtml(formatBoardCoordinate(tip.startIndex))}${tip.extraWords > 1 ? ` · ${tip.extraWords} Wörter` : ""}</span>
+        <span>${escapeHtml(tip.directionLabel)} ab ${escapeHtml(formatBoardCoordinate(tip.startIndex))}${tip.extraWords > 1 ? ` · ${tip.extraWords} Wörter` : ""}${tip.personal ? " · persönlich" : ""}</span>
         <div class="tipActions">
           <button type="button" onclick="wwShowTipSuggestion(${idx})">Anzeigen</button>
           <button type="button" class="primary" onclick="wwPlaceTipSuggestion(${idx})">Legen</button>
@@ -3174,38 +3176,89 @@ function formatBoardCoordinate(index) {
   return `R${row}/S${col}`;
 }
 
-function wordToSuggestionTiles(raw) {
-  const word = String(raw || "").toUpperCase().replace(/[^A-Z]/g, "");
-  const tiles = [];
-  for (let i = 0; i < word.length; i++) {
-    if (word[i] === "Q") {
-      if (word[i + 1] === "U") { tiles.push("QU"); i++; }
-      else return null;
-    } else {
-      tiles.push(word[i]);
+function suggestionDisplayFromTiles(tiles) {
+  return (tiles || []).join("");
+}
+function pushSuggestionVariant(variants, options) {
+  const next = [];
+  for (const variant of variants) {
+    for (const option of options) {
+      const candidate = variant.concat(option);
+      if (candidate.length <= 10) next.push(candidate);
+      if (next.length >= 24) return next;
     }
   }
-  if (tiles.some(t => !LETTER_POINTS.hasOwnProperty(t) || t === JOKER_TILE)) return null;
-  return tiles;
+  return next;
+}
+function wordToSuggestionTileVariants(raw, allowedSpecials={ae:true, oe:true, ue:true, ss:true}) {
+  const word = normalizeWord(raw);
+  if (!word || word.length < 2 || word.length > 12) return [];
+  let variants = [[]];
+  for (let i = 0; i < word.length; i++) {
+    const two = word.slice(i, i + 2);
+    if (two === "QU") {
+      variants = pushSuggestionVariant(variants, [["QU"]]);
+      i++;
+    } else if (two === "AE") {
+      variants = pushSuggestionVariant(variants, allowedSpecials.ae ? [["A", "E"], ["Ä"]] : [["A", "E"]]);
+      i++;
+    } else if (two === "OE") {
+      variants = pushSuggestionVariant(variants, allowedSpecials.oe ? [["O", "E"], ["Ö"]] : [["O", "E"]]);
+      i++;
+    } else if (two === "UE") {
+      variants = pushSuggestionVariant(variants, allowedSpecials.ue ? [["U", "E"], ["Ü"]] : [["U", "E"]]);
+      i++;
+    } else if (two === "SS") {
+      variants = pushSuggestionVariant(variants, allowedSpecials.ss ? [["S", "S"], ["ß"]] : [["S", "S"]]);
+      i++;
+    } else if (word[i] === "Q") {
+      return [];
+    } else {
+      variants = pushSuggestionVariant(variants, [[word[i]]]);
+    }
+  }
+  const valid = [];
+  const seen = new Set();
+  for (const tiles of variants) {
+    if (tiles.length < 2 || tiles.length > 10) continue;
+    if (tiles.some(t => !LETTER_POINTS.hasOwnProperty(t) || t === JOKER_TILE)) continue;
+    const key = tiles.join("|");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    valid.push(tiles);
+  }
+  return valid;
 }
 
 function getSuggestionWordCache() {
   if (suggestionWordCache) return suggestionWordCache;
-  const source = [];
-  if (Array.isArray(BASE_WORDS_RAW)) { for (const w of BASE_WORDS_RAW) source.push(w); }
-  getPersonalLexicon().forEach(w => source.push(w));
-  const seen = new Set();
-  suggestionWordCache = [];
-  for (const raw of source) {
-    const word = String(raw || "").toUpperCase();
-    if (word.length < 2 || word.length > 12 || seen.has(word)) continue;
-    const tiles = wordToSuggestionTiles(word);
-    if (!tiles || tiles.length < 2 || tiles.length > 10) continue;
-    seen.add(word);
-    suggestionWordCache.push({word, tiles});
+  const entries = new Map();
+  function addSuggestionSource(raw, personal=false) {
+    const normalized = normalizeWord(raw);
+    if (!normalized || normalized.length < 2 || normalized.length > 12) return;
+    const existing = entries.get(normalized);
+    if (existing) existing.personal = existing.personal || personal;
+    else entries.set(normalized, {word: normalized, normalizedWord: normalized, personal: !!personal, baseLength: normalized.length});
   }
-  suggestionWordCache.sort((a, b) => a.tiles.length - b.tiles.length || a.word.localeCompare(b.word, "de"));
+  if (Array.isArray(BASE_WORDS_RAW)) { for (const w of BASE_WORDS_RAW) addSuggestionSource(w, false); }
+  getPersonalLexicon().forEach(w => addSuggestionSource(w, true));
+  suggestionWordCache = [...entries.values()];
+  suggestionWordCache.sort((a, b) => (b.personal - a.personal) || a.baseLength - b.baseLength || a.normalizedWord.localeCompare(b.normalizedWord, "de"));
   return suggestionWordCache;
+}
+
+function getAllowedSuggestionSpecials(counts) {
+  const has = letter => !!((counts.rackCounts && counts.rackCounts[letter]) || (counts.boardCounts && counts.boardCounts[letter]));
+  return {ae: has("Ä"), oe: has("Ö"), ue: has("Ü"), ss: has("ß")};
+}
+function expandSuggestionEntryForSearch(entry, counts) {
+  const allowed = getAllowedSuggestionSpecials(counts);
+  return wordToSuggestionTileVariants(entry.normalizedWord || entry.word, allowed).map(tiles => ({
+    word: suggestionDisplayFromTiles(tiles),
+    normalizedWord: entry.normalizedWord || normalizeWord(entry.word),
+    tiles,
+    personal: !!entry.personal
+  }));
 }
 
 function getSuggestionCounts() {
@@ -3346,6 +3399,8 @@ function trySuggestionPlacement(entry, startIndex, dr, dc) {
   const status = getMoveStatus(result);
   const suggestion = status === "valid" ? {
     word: entry.word,
+    normalizedWord: entry.normalizedWord || normalizeWord(entry.word),
+    personal: !!entry.personal,
     points: result.points,
     startIndex,
     direction: dr === 0 ? "h" : "v",
@@ -3362,20 +3417,40 @@ function findLightMoveSuggestions(limit=TIP_MAX_RESULTS) {
   if (!state || !(state.rack || []).some(Boolean)) return [];
   const counts = getSuggestionCounts();
   const candidates = [];
+  const candidateKeys = new Set();
+  const addCandidate = entry => {
+    const key = `${entry.word}|${entry.tiles.join("|")}`;
+    if (candidateKeys.has(key)) return;
+    candidateKeys.add(key);
+    candidates.push(entry);
+  };
   let scanned = 0;
   const cache = getSuggestionWordCache();
   const firstMove = state.mode !== "letters" && !state.firstSuccessfulMove;
+  for (const baseEntry of cache) {
+    if (!baseEntry.personal) continue;
+    for (const entry of expandSuggestionEntryForSearch(baseEntry, counts)) {
+      if (entry.tiles.length > getBoardSize()) continue;
+      if (!candidateCouldFit(entry.tiles, counts)) continue;
+      addCandidate(entry);
+    }
+  }
+  const candidateLimit = firstMove ? TIP_FIRST_MOVE_MAX_CANDIDATES : TIP_MAX_CANDIDATES;
+  const testLimit = firstMove ? TIP_FIRST_MOVE_MAX_TESTS : TIP_MAX_TESTS;
   const start = firstMove ? cache.length - 1 : 0;
   const end = firstMove ? -1 : cache.length;
   const step = firstMove ? -1 : 1;
   for (let i = start; i !== end; i += step) {
-    const entry = cache[i];
-    if (entry.tiles.length > getBoardSize()) continue;
-    if (!candidateCouldFit(entry.tiles, counts)) continue;
-    const alwaysInclude = !firstMove && entry.tiles.length <= TIP_ALWAYS_INCLUDE_LENGTH_AFTER_FIRST_MOVE;
-    if (!alwaysInclude && scanned >= TIP_MAX_CANDIDATES) break;
-    candidates.push(entry);
-    if (!alwaysInclude) scanned++;
+    const baseEntry = cache[i];
+    for (const entry of expandSuggestionEntryForSearch(baseEntry, counts)) {
+      if (entry.tiles.length > getBoardSize()) continue;
+      if (!candidateCouldFit(entry.tiles, counts)) continue;
+      const alwaysInclude = !firstMove && entry.tiles.length <= TIP_ALWAYS_INCLUDE_LENGTH_AFTER_FIRST_MOVE;
+      if (!alwaysInclude && scanned >= candidateLimit) break;
+      addCandidate(entry);
+      if (!alwaysInclude && !entry.personal) scanned++;
+    }
+    if (scanned >= candidateLimit && (firstMove || (baseEntry.baseLength || 0) > TIP_ALWAYS_INCLUDE_LENGTH_AFTER_FIRST_MOVE)) break;
   }
   const suggestions = [];
   const seen = new Set();
@@ -3385,7 +3460,7 @@ function findLightMoveSuggestions(limit=TIP_MAX_RESULTS) {
     const startsByDirection = directions.map(([dr, dc]) => ({dr, dc, starts: getSuggestionStarts(entry.tiles.length, dr, dc)}));
     for (const item of startsByDirection) {
       for (const start of item.starts) {
-        if (++tests > TIP_MAX_TESTS) break;
+        if (++tests > testLimit) break;
         const suggestion = trySuggestionPlacement(entry, start, item.dr, item.dc);
         if (!suggestion) continue;
         const key = `${suggestion.word}:${suggestion.startIndex}:${suggestion.direction}`;
@@ -3393,12 +3468,12 @@ function findLightMoveSuggestions(limit=TIP_MAX_RESULTS) {
         seen.add(key);
         suggestions.push(suggestion);
       }
-      if (tests > TIP_MAX_TESTS) break;
+      if (tests > testLimit) break;
     }
-    if (tests > TIP_MAX_TESTS) break;
+    if (tests > testLimit) break;
   }
   const sorted = suggestions
-    .sort((a, b) => b.points - a.points || a.word.length - b.word.length || a.word.localeCompare(b.word, "de"));
+    .sort((a, b) => (b.points + (b.personal ? 8 : 0)) - (a.points + (a.personal ? 8 : 0)) || a.word.length - b.word.length || a.word.localeCompare(b.word, "de"));
   const unique = [];
   const usedWords = new Set();
   for (const suggestion of sorted) {
