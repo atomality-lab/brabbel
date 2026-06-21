@@ -1,4 +1,4 @@
-# Brabbel v5.58 – Status-Popups
+# Brabbel v5.59 – Legevorschläge Light
 
 ## Start
 1. ZIP entpacken.
@@ -494,6 +494,15 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 
 
 
+
+
+## Neu in v5.59
+
+- Legetipps Light über den 💡-Button.
+- Die Tipp-Schublade zeigt bis zu drei mögliche Züge mit Punkten.
+- Vorschläge können auf dem Brett angezeigt oder mit „Legen“ als aktueller Zug platziert werden.
+- Der Zug wird dabei nicht automatisch abgeschlossen.
+- Keine Überlegen-Strategie und keine Bonusstein-Strategie in dieser ersten Tipp-Version.
 
 ## Neu in v5.58
 

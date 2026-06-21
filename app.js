@@ -753,6 +753,9 @@ let pendingBonusSwapRackIndex = null;
 let pendingBonusTransformSlotIndex = null;
 let pendingBonusTransformRackIndex = null;
 let pendingBonusTransformLetter = "";
+let tipPreviewIndexes = new Set();
+let lastTipSuggestions = [];
+let suggestionWordCache = null;
 
 const $ = id => document.getElementById(id);
 
@@ -769,7 +772,7 @@ function getPersonalLexicon() {
   try { return new Set(JSON.parse(localStorage.getItem(K.lexicon) || "[]")); }
   catch { return new Set(); }
 }
-function savePersonalLexicon(s) { localStorage.setItem(K.lexicon, JSON.stringify([...s].sort())); }
+function savePersonalLexicon(s) { localStorage.setItem(K.lexicon, JSON.stringify([...s].sort())); suggestionWordCache = null; }
 function isWordKnown(w) {
   const n = normalizeWord(w);
   return BASE_WORDS.has(n) || getPersonalLexicon().has(n);
@@ -1420,6 +1423,7 @@ function renderBoard() {
     if (cell.lucky && (cell.isNew || cell.isReplacement)) b.classList.add("luckyTile", `lucky-${cell.lucky.color || "green"}`);
     if (cell.letter) b.classList.add("filled");
     if (cell.letter && cell.settled) b.classList.add("settled");
+    if (tipPreviewIndexes && tipPreviewIndexes.has(idx)) b.classList.add("tipPreview");
     if (selectedRackIndex !== null) b.classList.add("selectable");
 
     if (cell.letter) {
@@ -3092,11 +3096,345 @@ function toggleInfoPanel() {
   localStorage.setItem(K.infoPanelCollapsed, infoPanelCollapsed ? "true" : "false");
   applyInfoPanelSetting();
 }
+const TIP_MAX_RESULTS = 3;
+const TIP_MAX_CANDIDATES = 2600;
+const TIP_MAX_TESTS = 22000;
+
 function toggleTipDrawer() {
   const drawer = $("tipDrawer");
   if (!drawer) return;
-  drawer.classList.toggle("hidden");
+  if (!drawer.classList.contains("hidden")) {
+    drawer.classList.add("hidden");
+    tipPreviewIndexes = new Set();
+    renderGame();
+    return;
+  }
+  drawer.classList.remove("hidden");
+  renderTipSuggestions();
 }
+
+function setTipDrawerLoading(text="Ich suche nach möglichen Zügen …") {
+  const cards = $("tipCards");
+  if (cards) cards.innerHTML = `<div class="tipCard muted"><strong>💡 Legetipps</strong><span>${escapeHtml(text)}</span></div>`;
+}
+
+function renderTipSuggestions() {
+  const cards = $("tipCards");
+  if (!cards || !state) return;
+  tipPreviewIndexes = new Set();
+  setTipDrawerLoading();
+  window.setTimeout(() => {
+    lastTipSuggestions = findLightMoveSuggestions(TIP_MAX_RESULTS);
+    if (!lastTipSuggestions.length) {
+      cards.innerHTML = `<div class="tipCard muted"><strong>Kein Tipp gefunden</strong><span>Ich habe auf die Schnelle keinen gültigen Zug gefunden. Du kannst selbst weiterprobieren oder passen.</span></div>`;
+      renderGame();
+      return;
+    }
+    cards.innerHTML = lastTipSuggestions.map((tip, idx) => `
+      <div class="tipCard suggestionCard">
+        <strong>${escapeHtml(tip.word)} · ${tip.points} Pkt.</strong>
+        <span>${escapeHtml(tip.directionLabel)} ab ${escapeHtml(formatBoardCoordinate(tip.startIndex))}${tip.extraWords > 1 ? ` · ${tip.extraWords} Wörter` : ""}</span>
+        <div class="tipActions">
+          <button type="button" onclick="wwShowTipSuggestion(${idx})">Anzeigen</button>
+          <button type="button" class="primary" onclick="wwPlaceTipSuggestion(${idx})">Legen</button>
+        </div>
+      </div>`).join("");
+    renderGame();
+  }, 40);
+}
+
+function formatBoardCoordinate(index) {
+  const size = getBoardSize();
+  const row = Math.floor(index / size) + 1;
+  const col = (index % size) + 1;
+  return `R${row}/S${col}`;
+}
+
+function wordToSuggestionTiles(raw) {
+  const word = String(raw || "").toUpperCase().replace(/[^A-Z]/g, "");
+  const tiles = [];
+  for (let i = 0; i < word.length; i++) {
+    if (word[i] === "Q") {
+      if (word[i + 1] === "U") { tiles.push("QU"); i++; }
+      else return null;
+    } else {
+      tiles.push(word[i]);
+    }
+  }
+  if (tiles.some(t => !LETTER_POINTS.hasOwnProperty(t) || t === JOKER_TILE)) return null;
+  return tiles;
+}
+
+function getSuggestionWordCache() {
+  if (suggestionWordCache) return suggestionWordCache;
+  const source = [];
+  if (Array.isArray(BASE_WORDS_RAW)) { for (const w of BASE_WORDS_RAW) source.push(w); }
+  getPersonalLexicon().forEach(w => source.push(w));
+  const seen = new Set();
+  suggestionWordCache = [];
+  for (const raw of source) {
+    const word = String(raw || "").toUpperCase();
+    if (word.length < 2 || word.length > 12 || seen.has(word)) continue;
+    const tiles = wordToSuggestionTiles(word);
+    if (!tiles || tiles.length < 2 || tiles.length > 10) continue;
+    seen.add(word);
+    suggestionWordCache.push({word, tiles});
+  }
+  suggestionWordCache.sort((a, b) => b.tiles.length - a.tiles.length || a.word.localeCompare(b.word, "de"));
+  return suggestionWordCache;
+}
+
+function getSuggestionCounts() {
+  const rackCounts = {}, boardCounts = {};
+  let jokers = 0;
+  for (const tile of state.rack || []) {
+    if (!tile) continue;
+    if (isJokerTile(tile)) { jokers++; continue; }
+    const letter = getTileLetter(tile);
+    rackCounts[letter] = (rackCounts[letter] || 0) + 1;
+  }
+  for (const cell of state.board || []) {
+    if (!cell.letter) continue;
+    boardCounts[cell.letter] = (boardCounts[cell.letter] || 0) + 1;
+  }
+  return {rackCounts, boardCounts, jokers};
+}
+
+function candidateCouldFit(tiles, counts) {
+  const needed = {};
+  for (const t of tiles) needed[t] = (needed[t] || 0) + 1;
+  let missing = 0;
+  for (const [letter, count] of Object.entries(needed)) {
+    const available = (counts.rackCounts[letter] || 0) + (counts.boardCounts[letter] || 0);
+    if (count > available) missing += count - available;
+  }
+  return missing <= counts.jokers;
+}
+
+function getSuggestionStarts(length, dr, dc) {
+  const size = getBoardSize();
+  const starts = [];
+  const firstMove = state.mode !== "letters" && !state.firstSuccessfulMove;
+  if (firstMove) {
+    const center = Math.floor(size / 2);
+    if (dr === 0) {
+      const row = center;
+      for (let col = center - length + 1; col <= center; col++) {
+        if (col >= 0 && col + length <= size) starts.push(row * size + col);
+      }
+    } else {
+      const col = center;
+      for (let row = center - length + 1; row <= center; row++) {
+        if (row >= 0 && row + length <= size) starts.push(row * size + col);
+      }
+    }
+    return starts;
+  }
+  const maxRow = dr === 0 ? size - 1 : size - length;
+  const maxCol = dc === 0 ? size - 1 : size - length;
+  for (let row = 0; row <= maxRow; row++) {
+    for (let col = 0; col <= maxCol; col++) starts.push(row * size + col);
+  }
+  return starts;
+}
+
+function findRackTileForSuggestion(token, usedRack) {
+  for (let i = 0; i < (state.rack || []).length; i++) {
+    if (usedRack.has(i)) continue;
+    const tile = state.rack[i];
+    if (!tile || isJokerTile(tile)) continue;
+    if (getTileLetter(tile) === token) return {rackIndex: i, joker: false, tile};
+  }
+  for (let i = 0; i < (state.rack || []).length; i++) {
+    if (usedRack.has(i)) continue;
+    const tile = state.rack[i];
+    if (tile && isJokerTile(tile)) return {rackIndex: i, joker: true, tile};
+  }
+  return null;
+}
+
+function snapshotSuggestionCells(indexes, rackIndexes) {
+  return {
+    cells: indexes.map(i => ({index: i, cell: {...state.board[i], lucky: cloneLucky(state.board[i].lucky), previousLucky: cloneLucky(state.board[i].previousLucky)}})),
+    rack: rackIndexes.map(i => ({index: i, tile: state.rack[i]}))
+  };
+}
+
+function restoreSuggestionSnapshot(snapshot) {
+  snapshot.cells.forEach(item => { state.board[item.index] = item.cell; });
+  snapshot.rack.forEach(item => { state.rack[item.index] = item.tile; });
+}
+
+function trySuggestionPlacement(entry, startIndex, dr, dc) {
+  const size = getBoardSize();
+  const indexes = entry.tiles.map((_, offset) => startIndex + (dr * size + dc) * offset);
+  const before = startIndex - (dr * size + dc);
+  const after = startIndex + (dr * size + dc) * entry.tiles.length;
+  const beforeRow = Math.floor(before / size), beforeCol = before % size;
+  const afterRow = Math.floor(after / size), afterCol = after % size;
+  if (before >= 0 && before < state.board.length && (dr === 1 || beforeRow === Math.floor(startIndex / size)) && (dc === 1 || beforeCol === startIndex % size) && state.board[before]?.letter) return null;
+  const lastIndex = indexes[indexes.length - 1];
+  if (after >= 0 && after < state.board.length && (dr === 1 || afterRow === Math.floor(lastIndex / size)) && (dc === 1 || afterCol === lastIndex % size) && state.board[after]?.letter) return null;
+
+  const usedRack = new Set();
+  const placements = [];
+  const touchedIndexes = [];
+  const touchedRack = [];
+  let overlapsExisting = false;
+
+  for (let i = 0; i < entry.tiles.length; i++) {
+    const idx = indexes[i];
+    const token = entry.tiles[i];
+    const cell = state.board[idx];
+    if (!cell) return null;
+    if (cell.isNew || cell.isReplacement) return null;
+    if (cell.letter) {
+      if (cell.letter !== token) return null;
+      overlapsExisting = true;
+      continue;
+    }
+    const match = findRackTileForSuggestion(token, usedRack);
+    if (!match) return null;
+    usedRack.add(match.rackIndex);
+    placements.push({index: idx, letter: token, rackIndex: match.rackIndex, joker: match.joker});
+    touchedIndexes.push(idx);
+    touchedRack.push(match.rackIndex);
+  }
+  if (!placements.length) return null;
+  if (state.firstSuccessfulMove && !overlapsExisting && !placements.some(p => neighbors(p.index).some(n => state.board[n]?.letter))) return null;
+
+  const snapshot = snapshotSuggestionCells(touchedIndexes, touchedRack);
+  for (const p of placements) {
+    const tile = state.rack[p.rackIndex];
+    const cell = state.board[p.index];
+    cell.letter = p.letter;
+    cell.joker = !!p.joker;
+    cell.lucky = p.joker ? null : getTileLucky(tile);
+    cell.settled = false;
+    cell.isNew = true;
+    cell.isReplacement = false;
+    cell.previousLetter = "";
+    cell.previousJoker = false;
+    cell.previousLucky = null;
+    state.rack[p.rackIndex] = "";
+  }
+  const result = analyzeMove();
+  const status = getMoveStatus(result);
+  const suggestion = status === "valid" ? {
+    word: entry.word,
+    points: result.points,
+    startIndex,
+    direction: dr === 0 ? "h" : "v",
+    directionLabel: dr === 0 ? "waagrecht" : "senkrecht",
+    placements: placements.map(p => ({...p})),
+    previewIndexes: indexes.slice(),
+    extraWords: result.words.length
+  } : null;
+  restoreSuggestionSnapshot(snapshot);
+  return suggestion;
+}
+
+function findLightMoveSuggestions(limit=TIP_MAX_RESULTS) {
+  if (!state || !(state.rack || []).some(Boolean)) return [];
+  const counts = getSuggestionCounts();
+  const candidates = [];
+  let scanned = 0;
+  for (const entry of getSuggestionWordCache()) {
+    if (entry.tiles.length > getBoardSize()) continue;
+    if (!candidateCouldFit(entry.tiles, counts)) continue;
+    candidates.push(entry);
+    if (++scanned >= TIP_MAX_CANDIDATES) break;
+  }
+  const suggestions = [];
+  const seen = new Set();
+  let tests = 0;
+  for (const entry of candidates) {
+    for (const [dr, dc] of [[0, 1], [1, 0]]) {
+      for (const start of getSuggestionStarts(entry.tiles.length, dr, dc)) {
+        if (++tests > TIP_MAX_TESTS) break;
+        const suggestion = trySuggestionPlacement(entry, start, dr, dc);
+        if (!suggestion) continue;
+        const key = `${suggestion.word}:${suggestion.startIndex}:${suggestion.direction}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        suggestions.push(suggestion);
+      }
+      if (tests > TIP_MAX_TESTS) break;
+    }
+    if (tests > TIP_MAX_TESTS) break;
+  }
+  const sorted = suggestions
+    .sort((a, b) => b.points - a.points || a.word.length - b.word.length || a.word.localeCompare(b.word, "de"));
+  const unique = [];
+  const usedWords = new Set();
+  for (const suggestion of sorted) {
+    if (usedWords.has(suggestion.word)) continue;
+    usedWords.add(suggestion.word);
+    unique.push(suggestion);
+    if (unique.length >= limit) break;
+  }
+  return unique;
+}
+
+function showTipSuggestion(index) {
+  const tip = lastTipSuggestions[index];
+  if (!tip) return;
+  tipPreviewIndexes = new Set(tip.previewIndexes || []);
+  renderGame();
+}
+
+function applyTipSuggestion(index) {
+  const tip = lastTipSuggestions[index];
+  if (!tip || !state) return;
+  const changed = state.board.some(c => c.isNew || c.isReplacement);
+  if (changed) {
+    confirmDialog("Vorschlag legen", "Du hast bereits Buchstaben gelegt. Soll der aktuelle Zug durch den Vorschlag ersetzt werden?", "Ja, legen", () => {
+      undoTurn(true);
+      placeTipSuggestionNow(tip);
+    }, "Nein, zurück");
+    return;
+  }
+  placeTipSuggestionNow(tip);
+}
+
+function placeTipSuggestionNow(tip) {
+  const usedRack = new Set();
+  const resolved = [];
+  for (const p of tip.placements || []) {
+    const currentCell = state.board[p.index];
+    if (!currentCell || currentCell.letter) { message("Tipp nicht mehr möglich", "Auf dem Brett hat sich etwas verändert. Bitte lasse die Tipps neu suchen."); return; }
+    let match = null;
+    if (state.rack[p.rackIndex] && !usedRack.has(p.rackIndex) && ((p.joker && isJokerTile(state.rack[p.rackIndex])) || (!p.joker && getTileLetter(state.rack[p.rackIndex]) === p.letter))) {
+      match = {rackIndex: p.rackIndex, joker: p.joker};
+    } else {
+      match = findRackTileForSuggestion(p.letter, usedRack);
+    }
+    if (!match) { message("Tipp nicht mehr möglich", "Deine Handsteine haben sich verändert. Bitte lasse die Tipps neu suchen."); return; }
+    usedRack.add(match.rackIndex);
+    resolved.push({...p, rackIndex: match.rackIndex, joker: match.joker});
+  }
+  for (const p of resolved) {
+    const tile = state.rack[p.rackIndex];
+    const cell = state.board[p.index];
+    cell.letter = p.letter;
+    cell.joker = !!p.joker;
+    cell.lucky = p.joker ? null : getTileLucky(tile);
+    cell.settled = false;
+    cell.isNew = true;
+    cell.isReplacement = false;
+    cell.previousLetter = "";
+    cell.previousJoker = false;
+    cell.previousLucky = null;
+    state.rack[p.rackIndex] = "";
+  }
+  selectedRackIndex = null;
+  tipPreviewIndexes = new Set();
+  $("tipDrawer")?.classList.add("hidden");
+  renderGame();
+}
+
+window.wwShowTipSuggestion = showTipSuggestion;
+window.wwPlaceTipSuggestion = applyTipSuggestion;
 
 function animationsEnabled() {
   return localStorage.getItem(K.animations) !== "false";

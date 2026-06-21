@@ -2708,3 +2708,24 @@ body.infoCollapsed .controlsSecondaryV55 {
 .rackMoveBox:focus-visible {
   box-shadow: 0 0 0 3px rgba(0, 109, 119, .22);
 }
+
+
+/* Brabbel v5.59: Legevorschläge Light */
+.cell.tipPreview {
+  box-shadow: inset 0 0 0 4px rgba(245, 158, 11, .6), 0 0 0 2px rgba(245, 158, 11, .28) !important;
+  background-image: linear-gradient(135deg, rgba(255, 251, 235, .75), rgba(254, 243, 199, .45));
+}
+.tipCard.suggestionCard {
+  align-items: stretch;
+}
+.tipActions {
+  display: flex;
+  gap: .45rem;
+  margin-top: .45rem;
+}
+.tipActions button {
+  min-height: 34px;
+  border-radius: 12px;
+  padding: .35rem .6rem;
+  font-weight: 900;
+}
