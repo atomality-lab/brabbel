@@ -1,4 +1,4 @@
-# Brabbel v5.57 – Glücksstein-Drag sichtbar
+# Brabbel v5.58 – Status-Popups
 
 ## Start
 1. ZIP entpacken.
@@ -493,6 +493,14 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 
 
 
+
+
+## Neu in v5.58
+
+- Bonussteine zeigen beim Antippen keinen blauen Overlay/Fokus-Schleier mehr.
+- Die Beutelbox kann im klassischen Spiel angetippt werden und zeigt den Beutelinhalt als Pop-up.
+- Die aktuelle Punktebox kann bei gültigem Zug angetippt werden und zeigt die Punkteaufschlüsselung als Pop-up.
+- Beim Zugabschluss erscheint „Aufschlüsselung“ nur noch einmal.
 
 
 ## Neu in v5.57

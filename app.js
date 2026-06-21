@@ -1051,6 +1051,10 @@ function init() {
   $("sortVowelsBtn").addEventListener("click", () => sortRack("vowels"));
   $("shuffleRackBtn").addEventListener("click", shuffleRack);
   $("hintBtn")?.addEventListener("click", toggleTipDrawer);
+  $("bagStatusBox")?.addEventListener("click", showBagContentsPopup);
+  $("bagStatusBox")?.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); showBagContentsPopup(); } });
+  $("currentMoveBox")?.addEventListener("click", showCurrentMoveScorePopup);
+  $("currentMoveBox")?.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); showCurrentMoveScorePopup(); } });
   $("verifyYesBtn").onclick = window.wwAcceptUnknownWord;
   $("verifyNoBtn").onclick = window.wwRejectUnknownWord;
   $("messageOkBtn").addEventListener("click", () => {
@@ -2108,6 +2112,28 @@ function renderBagLetters() {
   const counts = getBagLetterCounts();
   out.innerHTML = BAG_DISPLAY_ORDER.map(tile => `<span><strong>${escapeHtml(tile)}</strong>=${counts[tile] || 0}</span>`).join("");
 }
+function formatBagContentsText() {
+  if (!state || !isClassicGame()) return "In diesem Spielmodus gibt es keinen festen Buchstabenbeutel.";
+  const counts = getBagLetterCounts();
+  const parts = BAG_DISPLAY_ORDER.map(tile => `${tile}=${counts[tile] || 0}`);
+  const rows = [];
+  for (let i = 0; i < parts.length; i += 6) rows.push(parts.slice(i, i + 6).join("   "));
+  return `Noch im Beutel: ${state.bag?.length || 0} Steine\n\n${rows.join("\n")}`;
+}
+function showBagContentsPopup() {
+  if (!state) return;
+  message("Buchstaben im Beutel", formatBagContentsText());
+}
+function showCurrentMoveScorePopup() {
+  if (!state) return;
+  const p = analyzeMove();
+  if (getMoveStatus(p) !== "valid") {
+    message("Aktuelle Punkte", "Sobald dein Zug gültig ist, kannst du hier die Punkteaufschlüsselung ansehen.");
+    return;
+  }
+  const text = formatMoveScoreBreakdown(p.scoreDetails, p.points).replace(/Punkte/g, "Pkt.");
+  message("Aktuelle Punkte", text);
+}
 function analyzeMove() {
   const changedCells = state.board.map((c,index) => ({...c,index})).filter(c => c.isNew || c.isReplacement), errors = [];
   if (!changedCells.length) return {changedCells, words: [], errors: ["Noch kein Buchstabe gelegt."], points: 0, unknown: []};
@@ -2318,7 +2344,8 @@ function formatMoveSuccessText(p) {
   const moveLabel = p.words?.length === 1 ? words : `${p.words?.length || 0} Wörter: ${words}`;
   const details = formatMoveScoreBreakdown(p.scoreDetails, p.points)
     .replace(/Punkte/g, "Pkt.")
-    .replace(/^Du erhältst .*?\n\n/, "");
+    .replace(/^Du erhältst .*?\n\n/, "")
+    .replace(/^Aufschlüsselung:\n/, "");
   return `Zug: ${moveLabel}\nZugpunkte: ${p.points || 0} Pkt.\nGesamtstand: ${state.score} Pkt.\n\nAufschlüsselung:\n${details}`;
 }
 function consumeLastTurnNotice() {

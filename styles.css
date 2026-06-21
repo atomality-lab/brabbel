@@ -2677,3 +2677,34 @@ body.infoCollapsed .controlsSecondaryV55 {
   opacity: 1 !important;
   visibility: visible !important;
 }
+
+/* Brabbel v5.58: Status-Popups und Bonusstein-Tap ohne blauen Schleier */
+.bonusStoneSlot,
+.bonusStoneSlot:active,
+.bonusStoneSlot:focus,
+.bonusStoneSlot:focus-visible {
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  outline: none !important;
+  filter: none !important;
+  transform: none !important;
+}
+.bonusStoneSlot:focus,
+.bonusStoneSlot:focus-visible,
+.bonusStoneSlot:active {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.9) !important;
+}
+.clickableStatusBox,
+.rackMoveBox {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.clickableStatusBox:focus,
+.rackMoveBox:focus {
+  outline: none;
+}
+.clickableStatusBox:focus-visible,
+.rackMoveBox:focus-visible {
+  box-shadow: 0 0 0 3px rgba(0, 109, 119, .22);
+}

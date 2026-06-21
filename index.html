@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"><meta name="theme-color" content="#0f766e"><title>Brabbel v5.57</title><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="stylesheet" href="styles.css"></head>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"><meta name="theme-color" content="#0f766e"><title>Brabbel v5.58</title><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="stylesheet" href="styles.css"></head>
 <body><div id="app">
 <section id="screen-welcome" class="screen active"><div class="card hero"><h1>Brabbel</h1><p class="lead">Ein ruhiges Wortspiel fürs Tablet: legen, wandeln, prüfen, weiterspielen.</p><label class="biglabel">Spielername<input id="playerNameInput" maxlength="8" placeholder="Name eingeben"><small class="inputHint">Maximal 8 Zeichen.</small></label><button id="savePlayerBtn" class="primary wide">Weiter</button></div></section>
 <section id="screen-menu" class="screen"><div class="card hero"><h1>Brabbel</h1><p id="helloLine" class="lead"></p><div class="menuButtons"><button id="newGameMenuBtn" class="primary wide">Neues Spiel</button><button id="continueMenuBtn" class="wide">Spiel fortsetzen</button><button id="leaderboardMenuBtn" class="wide">Bestenliste</button><button id="lexiconMenuBtn" class="wide">Wortschatz</button>
@@ -138,7 +138,7 @@
     <section id="screen-about" class="screen">
       <div class="card wideCard infoPage">
         <h1>Über Brabbel</h1>
-        <div class="aboutHero"><strong>Brabbel v5.57</strong><span>Stand: 16.06.2026</span><span>Erstellt von Atomality</span></div>
+        <div class="aboutHero"><strong>Brabbel v5.58</strong><span>Stand: 16.06.2026</span><span>Erstellt von Atomality</span></div>
 
         <h2>Was ist Brabbel?</h2>
         <p>Brabbel ist ein deutschsprachiges Wortspiel fürs Tablet. Es ist als ruhiges, gut lesbares Spiel mit großen Bedienelementen gedacht.</p>
@@ -225,7 +225,7 @@
       <section class="panel rackPanelV54" aria-label="Handsteine">
         <div class="rackWithBonus"><div id="bonusRackSlots" class="bonusRackSlots hidden" aria-label="Bonussteine"></div><div id="rack" class="rack"></div></div>
         <div class="rackToolRow">
-          <div id="currentMoveBox" class="currentMoveBox moveStatus-empty rackMoveBox"><strong id="currentMoveLabel">Aktuell</strong><span id="currentMoveOut">0 Pkt.</span></div>
+          <div id="currentMoveBox" class="currentMoveBox moveStatus-empty rackMoveBox" role="button" tabindex="0" title="Punkteaufschlüsselung anzeigen"><strong id="currentMoveLabel">Aktuell</strong><span id="currentMoveOut">0 Pkt.</span></div>
           <div class="rackSortControls" aria-label="Buchstaben sortieren"><button id="sortAlphaBtn" type="button" title="Alphabetisch sortieren">A→Z</button>
             <button id="sortPointsBtn" type="button" title="Nach Punktwert sortieren, hoch nach niedrig">8→1</button>
             <button id="sortVowelsBtn" type="button" title="Vokale zuerst">AEIOU</button>
@@ -243,7 +243,7 @@
 
       <div class="boardUnderRow">
         <section class="panel turnStatusPanel" aria-label="Spielstand">
-          <div><strong>Beutel</strong><span id="bagStatusOut">–</span></div>
+          <div id="bagStatusBox" class="clickableStatusBox" role="button" tabindex="0" title="Beutelinhalt anzeigen"><strong>Beutel</strong><span id="bagStatusOut">–</span></div>
           <div><strong>Runde</strong><span id="roundStatusOut">1</span></div>
           <div><strong id="opponentScoreLabel">Gegner</strong><span id="opponentScoreOut">–</span></div>
           <div><strong id="totalScoreLabel">Gesamt</strong><span id="totalScoreOut">0 Pkt.</span></div>
