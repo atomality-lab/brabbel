@@ -2729,3 +2729,18 @@ body.infoCollapsed .controlsSecondaryV55 {
   padding: .35rem .6rem;
   font-weight: 900;
 }
+
+
+/* Brabbel v5.62: PvP-Tipps nur per Geistesblitz */
+.tipButton.tipLocked {
+  opacity: .55;
+  filter: grayscale(.25);
+  position: relative;
+}
+.tipButton.tipLocked::after {
+  content: "🔒";
+  position: absolute;
+  right: -0.35rem;
+  top: -0.45rem;
+  font-size: .72rem;
+}

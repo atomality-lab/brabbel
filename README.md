@@ -1,4 +1,4 @@
-# Brabbel v5.61 – Legetipps bessere Wertung
+# Brabbel v5.62 – PvP-Tipps als Bonus
 
 ## Start
 1. ZIP entpacken.
@@ -497,6 +497,14 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 
 
 
+
+
+## Neu in v5.62
+
+- Im Einzelspiel bleiben Legetipps frei verfügbar.
+- Im Modus „Zu zweit“ sind Legetipps nur noch mit dem Bonusstein „Geistesblitz“ verfügbar.
+- Neuer Bonusstein „Geistesblitz“ / „Tipp“ im PvP-Bonuspool.
+- Der Tipp-Button zeigt im PvP ohne Bonus einen Hinweis statt direkt Tipps zu öffnen.
 
 ## Neu in v5.61
 

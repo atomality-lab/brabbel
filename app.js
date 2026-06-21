@@ -32,10 +32,11 @@ const BONUS_STONE_DEFS = {
   pvp_deduct10: {type:"pvp_deduct10", symbol:"👤−10", name:"Abzug −10", help:"Dem Gegenspieler werden 10 Punkte abgezogen. Der Punktestand fällt nicht unter 0.", kind:"pvp", target:"opponent", value:10, steal:false, weight:15},
   pvp_steal5: {type:"pvp_steal5", symbol:"↔−5", name:"Punktedieb −5", help:"Dem Gegenspieler werden bis zu 5 Punkte abgezogen. Du erhältst die tatsächlich abgezogenen Punkte dazu.", kind:"pvp", target:"opponent", value:5, steal:true, weight:25},
   pvp_steal10: {type:"pvp_steal10", symbol:"↔−10", name:"Punktedieb −10", help:"Dem Gegenspieler werden bis zu 10 Punkte abgezogen. Du erhältst die tatsächlich abgezogenen Punkte dazu.", kind:"pvp", target:"opponent", value:10, steal:true, weight:10},
-  pvp_skip: {type:"pvp_skip", symbol:"👤🚫", name:"Zwangspause", help:"Der Gegenspieler muss seinen nächsten Zug aussetzen. Danach bist du wieder am Zug.", kind:"pvp", target:"opponent", weight:20}
+  pvp_skip: {type:"pvp_skip", symbol:"👤🚫", name:"Zwangspause", help:"Der Gegenspieler muss seinen nächsten Zug aussetzen. Danach bist du wieder am Zug.", kind:"pvp", target:"opponent", weight:20},
+  pvp_tip: {type:"pvp_tip", symbol:"💡", name:"Geistesblitz", label:"Tipp", help:"Du darfst in diesem Zug einen Legetipp öffnen. Brabbel zeigt dir bis zu drei mögliche Züge.", kind:"tip", weight:45}
 };
 const BONUS_GENERAL_TYPES = ["points5", "points10", "points20", "double_turn", "swap_all", "swap_one", "shield"];
-const BONUS_PVP_TYPES = ["pvp_deduct5", "pvp_deduct10", "pvp_steal5", "pvp_steal10", "pvp_skip"];
+const BONUS_PVP_TYPES = ["pvp_deduct5", "pvp_deduct10", "pvp_steal5", "pvp_steal10", "pvp_skip", "pvp_tip"];
 const BONUS_STONE_POOL = BONUS_GENERAL_TYPES.map(type => BONUS_STONE_DEFS[type]);
 const BONUS_PVP_POOL = BONUS_PVP_TYPES.map(type => BONUS_STONE_DEFS[type]);
 const LUCK_GREEN_CHANCE = 0.085;
@@ -235,6 +236,14 @@ function getActiveBonusMultiplierText() {
   const value = getActiveBonusMultiplier();
   return value > 1 ? `×${value}` : "";
 }
+function hasActivePvpTipBonus() {
+  return getBonusDef(state?.activeBonus)?.type === "pvp_tip";
+}
+function canUseTipsInCurrentMode() {
+  if (!state) return false;
+  if (!isDuelGame()) return true;
+  return hasActivePvpTipBonus();
+}
 
 function consumeBonusSlot(slotIndex) {
   if (!state || !Array.isArray(state.bonusSlots)) return null;
@@ -401,6 +410,9 @@ function useBonusSlot(slotIndex) {
     applyPvpPointEffect(10, true);
   } else if (def.type === "pvp_skip") {
     applyPvpSkip();
+  } else if (def.type === "pvp_tip") {
+    state.activeBonus = stone;
+    message("Geistesblitz aktiviert", "Du darfst in diesem Zug einen Legetipp öffnen. Tippe auf die Glühbirne, um Vorschläge zu sehen.");
   }
   renderGame();
   saveAutosave();
@@ -1357,7 +1369,7 @@ function renderGame() {
   const giveUpAvailable = isGiveUpAvailable();
   $("giveUpBtn")?.classList.toggle("hidden", !giveUpAvailable);
   $("bottomGameControls")?.classList.toggle("hasGiveUp", giveUpAvailable);
-  renderBoard(); renderRack(); renderBonusSlots(); renderTurnStatus(); renderPreview(); renderLastMove(); renderBagLetters();
+  renderBoard(); renderRack(); renderBonusSlots(); renderTurnStatus(); renderPreview(); renderLastMove(); renderBagLetters(); updateTipButtonState();
 }
 function getRoundStatusText() {
   if (!state) return "–";
@@ -3101,9 +3113,20 @@ const TIP_MAX_CANDIDATES = 9000;
 const TIP_MAX_TESTS = 65000;
 const TIP_ALWAYS_INCLUDE_LENGTH_AFTER_FIRST_MOVE = 5;
 
+function updateTipButtonState() {
+  const btn = $("hintBtn");
+  if (!btn) return;
+  const locked = !!(state && isDuelGame() && !hasActivePvpTipBonus());
+  btn.classList.toggle("tipLocked", locked);
+  btn.title = locked ? "Im Spiel zu zweit brauchst du den Bonusstein Geistesblitz für Tipps." : "Legetipps anzeigen";
+}
 function toggleTipDrawer() {
   const drawer = $("tipDrawer");
   if (!drawer) return;
+  if (!canUseTipsInCurrentMode()) {
+    message("Tipp gesperrt", "Im Spiel zu zweit brauchst du für Tipps den Bonusstein „Geistesblitz“.");
+    return;
+  }
   if (!drawer.classList.contains("hidden")) {
     drawer.classList.add("hidden");
     tipPreviewIndexes = new Set();
