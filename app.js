@@ -1563,6 +1563,8 @@ function updateRackDragGhost(tile, x, y) {
   ghost.classList.toggle('lucky-green', lucky?.color === 'green');
   ghost.style.left = `${x}px`;
   ghost.style.top = `${y}px`;
+  ghost.style.setProperty('--ghost-x', `${x}px`);
+  ghost.style.setProperty('--ghost-y', `${y}px`);
 }
 
 
@@ -1599,6 +1601,8 @@ function updateBoardDragGhost(cell, x, y) {
   ghost.classList.toggle('lucky-green', cell.lucky?.color === 'green');
   ghost.style.left = `${x}px`;
   ghost.style.top = `${y}px`;
+  ghost.style.setProperty('--ghost-x', `${x}px`);
+  ghost.style.setProperty('--ghost-y', `${y}px`);
 }
 
 function clearBoardTileDragging() {

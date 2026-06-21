@@ -1,4 +1,4 @@
-# Brabbel v5.56 – Drag & Auswahlkorrektur
+# Brabbel v5.57 – Glücksstein-Drag sichtbar
 
 ## Start
 1. ZIP entpacken.
@@ -493,6 +493,14 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 
 
 
+
+
+## Neu in v5.57
+
+- Glückssteine bleiben beim Ziehen mit dem Finger wieder sichtbar.
+- Die Drag-Kachel für Glückssteine nutzt jetzt wieder eine feste Bildschirmposition und klebt am Finger.
+- Das gilt sowohl beim Ziehen aus der Hand als auch beim Verschieben eines bereits gelegten Glückssteins auf dem Brett.
+- Ursache war eine Überschreibung durch die Glücksstein-Darstellung; diese wurde gezielt korrigiert.
 
 
 ## Neu in v5.56

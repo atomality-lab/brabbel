@@ -2647,3 +2647,33 @@ body.infoCollapsed .controlsSecondaryV55 {
 .boardDragging .cell.boardTileDragging {
   opacity: .45 !important;
 }
+
+/* Brabbel v5.57: Glücksstein-Drag muss trotz Glücksstein-Design fixed bleiben */
+.rackDragGhost,
+.rackDragGhost.luckyTile,
+.rackDragGhost.lucky-green,
+.rackDragGhost.lucky-gold,
+.rackDragGhost.jokerTile {
+  position: fixed !important;
+  left: var(--ghost-x, 0px);
+  top: var(--ghost-y, 0px);
+  width: 60px !important;
+  height: 60px !important;
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  overflow: hidden !important;
+  z-index: 999999 !important;
+  pointer-events: none !important;
+  transform: translate(-50%, -50%) scale(1.08) !important;
+}
+.rackDragGhost.luckyTile::before {
+  z-index: 0 !important;
+}
+.rackDragGhost.luckyTile .tileLetter,
+.rackDragGhost.luckyTile .tilePoints,
+.rackDragGhost.luckyTile .luckyValue {
+  position: absolute !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
