@@ -2022,6 +2022,7 @@ body.infoCollapsed .board.boardLarge .cell {
 }
 
 /* Brabbel v5.50: Wandel-Dialog */
+/* Brabbel v5.51: Spielende & Speicherzeit */
 .wideDialog {
   max-width: min(760px, calc(100vw - 2rem));
 }

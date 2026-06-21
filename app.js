@@ -25,8 +25,8 @@ const BONUS_STONE_DEFS = {
   points10: {type:"points10", symbol:"+10", name:"+10 Punkte", help:"Nach Zugabschluss erhältst du zusätzlich +10 Punkte.", kind:"points", value:10, weight:17},
   points20: {type:"points20", symbol:"+20", name:"+20 Punkte", help:"Nach Zugabschluss erhältst du zusätzlich +20 Punkte.", kind:"points", value:20, weight:6},
   double_turn: {type:"double_turn", symbol:"×2", name:"Wertverdoppler", label:"Werte", help:"Der Wert deines abgeschlossenen Zugs wird verdoppelt.", kind:"multiplier", value:2, weight:8},
-  swap_all: {type:"swap_all", symbol:"🔄", name:"Alle Steine tauschen", help:"Deine aktuellen Handsteine wandern zurück in den Beutel. Danach ziehst du eine neue Hand. Ist der Beutel leer, wird der Bonus zu +5 Punkten.", kind:"action", weight:18},
-  swap_one: {type:"swap_one", symbol:"🅰️⇄?", name:"Buchstabenwandler", label:"Wandeln", help:"Wähle einen Handstein aus und verwandle ihn in einen Buchstaben deiner Wahl. Der alte Stein wandert zurück in den Beutel.", kind:"action", weight:17},
+  swap_all: {type:"swap_all", symbol:"🔄", name:"Alle Steine tauschen", help:"In der klassischen Variante wandern deine aktuellen Handsteine zurück in den Beutel. Danach ziehst du eine neue Hand. Ist der Beutel leer, wird der Bonus zu +5 Punkten.", kind:"action", weight:18},
+  swap_one: {type:"swap_one", symbol:"🅰️⇄?", name:"Buchstabenwandler", label:"Wandeln", help:"Wähle einen Handstein aus und verwandle ihn in einen Buchstaben deiner Wahl. In der klassischen Variante wandert der alte Stein zurück in den Beutel.", kind:"action", weight:17},
   shield: {type:"shield", symbol:"🛡️0", name:"Punkteschutz", help:"Am Spielende wird dir der Wert deiner übrigen Handsteine einmal nicht abgezogen. Der Bonus wird automatisch verwendet.", kind:"passive", weight:10},
   pvp_deduct5: {type:"pvp_deduct5", symbol:"👤−5", name:"Abzug −5", help:"Dem Gegenspieler werden 5 Punkte abgezogen. Der Punktestand fällt nicht unter 0.", kind:"pvp", target:"opponent", value:5, steal:false, weight:30},
   pvp_deduct10: {type:"pvp_deduct10", symbol:"👤−10", name:"Abzug −10", help:"Dem Gegenspieler werden 10 Punkte abgezogen. Der Punktestand fällt nicht unter 0.", kind:"pvp", target:"opponent", value:10, steal:false, weight:15},
@@ -2247,6 +2247,14 @@ function formatMoveSuccessText(p) {
     .replace(/^Du erhältst .*?\n\n/, "");
   return `${main}\nGesamt: ${state.score} Pkt.\n\n${details}`;
 }
+function getLastRoundNotice() {
+  if (!state || state.endMode !== "rounds") return "";
+  return Number(state.round) === Number(state.roundLimit) ? "Letzte Runde!" : "";
+}
+function appendLastRoundNotice(text) {
+  const notice = getLastRoundNotice();
+  return notice ? `${text}\n\n${notice}` : text;
+}
 function finalizeMove(p) {
   state.score += p.points;
   state.lastMove = {
@@ -2294,14 +2302,14 @@ ${state.player} hat den letzten Zug gespielt.`);
     }
     advanceDuelTurn();
     saveAutosave();
-    if (!checkGameEndAfterTurn()) showHandoffScreen(title, text);
+    if (!checkGameEndAfterTurn()) showHandoffScreen(title, appendLastRoundNotice(text));
     return;
   }
 
   state.round += 1;
   renderGame();
   saveAutosave();
-  if (!checkGameEndAfterTurn()) message(title, text);
+  if (!checkGameEndAfterTurn()) message(title, appendLastRoundNotice(text));
 }
 
 
@@ -2562,8 +2570,47 @@ function checkGameEndAfterTurn() {
   }
   return false;
 }
+function applyFinalHandPenalties(reason) {
+  if (!state || state.finalHandPenaltiesApplied) return reason || "";
+  const lines = [];
+
+  if (isDuelGame()) {
+    syncActivePlayerToPlayers();
+    state.players = (state.players || []).map((player, i) => ensureDuelPlayerShape(player, `Spieler ${i + 1}`));
+    state.players.forEach(player => {
+      const rawPenalty = getRackValue(player.rack);
+      if (rawPenalty > 0) {
+        const protection = isBonusModeBonus() ? consumePointProtectionFromSlots(player.bonusSlots) : {used:false, slots:normalizeBonusSlots(player.bonusSlots)};
+        player.bonusSlots = protection.slots;
+        const penalty = protection.used ? 0 : rawPenalty;
+        player.score = (Number(player.score) || 0) - penalty;
+        player.rack = Array.from({length: RACK_SIZE}, () => "");
+        lines.push(protection.used
+          ? `${player.name}: Punkteschutz verhindert Resthand-Abzug (${rawPenalty} Punkte)`
+          : `${player.name}: Resthand -${penalty} Punkte`);
+      }
+    });
+    state.finalHandPenaltiesApplied = true;
+    syncActivePlayerFromPlayers();
+  } else {
+    const rawPenalty = getRackValue(state.rack);
+    if (rawPenalty > 0) {
+      const protectedByBonus = isBonusModeBonus() && consumeActivePointProtection();
+      const penalty = protectedByBonus ? 0 : rawPenalty;
+      state.score = (Number(state.score) || 0) - penalty;
+      state.rack = Array.from({length: RACK_SIZE}, () => "");
+      lines.push(protectedByBonus
+        ? `Punkteschutz verhindert Resthand-Abzug (${rawPenalty} Punkte)`
+        : `Resthand -${penalty} Punkte`);
+    }
+    state.finalHandPenaltiesApplied = true;
+  }
+
+  return lines.length ? `${reason || ""}\n${lines.join("\n")}` : (reason || "");
+}
 function finishGame(reason) {
   if (isDuelGame()) syncActivePlayerToPlayers();
+  reason = applyFinalHandPenalties(reason);
   const summary = buildFinalSummary(reason);
   try { addLeaderboardEntry(summary); } catch (err) { console.error("Bestenliste konnte nicht aktualisiert werden", err); }
   clearAutosave();
@@ -2641,7 +2688,7 @@ ${state.player} hat gepasst. Das Spiel endet jetzt.`);
     }
     advanceDuelTurn();
     saveAutosave();
-    if (!checkGameEndAfterTurn()) showHandoffScreen("Runde ausgesetzt", "Gepasst. Die Handsteine bleiben erhalten.");
+    if (!checkGameEndAfterTurn()) showHandoffScreen("Runde ausgesetzt", appendLastRoundNotice("Gepasst. Die Handsteine bleiben erhalten."));
   };
   const text = changed
     ? "Du hast in dieser Runde bereits Buchstaben gelegt. Wenn du passt, werden sie zurückgenommen. Deine Handsteine bleiben erhalten. Wirklich passen?"
@@ -2717,11 +2764,11 @@ function getSlots() { try { const s = JSON.parse(localStorage.getItem(K.slots) |
 function saveSlots(s) { localStorage.setItem(K.slots, JSON.stringify(s)); }
 function renderSlots() {
   const slots = getSlots();
-  $("slotList").innerHTML = renderAutosaveCard() + slots.map((slot,i) => `<div class="slot"><strong>Spielstand ${i+1}</strong>${slot ? `<span>${escapeHtml(getSaveDisplayName(slot))} · ${escapeHtml(getSaveScoreText(slot))} · ${escapeHtml(getSaveModeText(slot))} · ${formatDate(slot.savedAt)}</span><div class="slotActions"><button onclick="loadSlot(${i})" class="primary">Laden</button><button onclick="deleteSlot(${i})" class="danger">Löschen</button></div>` : `<span class="muted">Leer</span>`}</div>`).join("");
+  $("slotList").innerHTML = renderAutosaveCard() + slots.map((slot,i) => `<div class="slot"><strong>Spielstand ${i+1}</strong>${slot ? `<span>${escapeHtml(getSaveDisplayName(slot))} · ${escapeHtml(getSaveScoreText(slot))} · ${escapeHtml(getSaveModeText(slot))} · ${formatDateTime(slot.savedAt)}</span><div class="slotActions"><button onclick="loadSlot(${i})" class="primary">Laden</button><button onclick="deleteSlot(${i})" class="danger">Löschen</button></div>` : `<span class="muted">Leer</span>`}</div>`).join("");
 }
 function renderSaveSlots() {
   const slots = getSlots();
-  $("saveSlotList").innerHTML = slots.map((slot,i) => `<div class="slot"><strong>Spielstand ${i+1}</strong>${slot ? `<span>${escapeHtml(getSaveDisplayName(slot))} · ${escapeHtml(getSaveScoreText(slot))} · ${escapeHtml(getSaveModeText(slot))} · ${formatDate(slot.savedAt)}</span><div class="slotActions"><button onclick="saveToSlot(${i})" class="primary">Hier speichern</button><button onclick="deleteSlot(${i})" class="danger">Löschen</button></div>` : `<span class="muted">Leer</span><button onclick="saveToSlot(${i})" class="primary">Hier speichern</button>`}</div>`).join("");
+  $("saveSlotList").innerHTML = slots.map((slot,i) => `<div class="slot"><strong>Spielstand ${i+1}</strong>${slot ? `<span>${escapeHtml(getSaveDisplayName(slot))} · ${escapeHtml(getSaveScoreText(slot))} · ${escapeHtml(getSaveModeText(slot))} · ${formatDateTime(slot.savedAt)}</span><div class="slotActions"><button onclick="saveToSlot(${i})" class="primary">Hier speichern</button><button onclick="deleteSlot(${i})" class="danger">Löschen</button></div>` : `<span class="muted">Leer</span><button onclick="saveToSlot(${i})" class="primary">Hier speichern</button>`}</div>`).join("");
 }
 window.saveToSlot = function(i) {
   const slots = getSlots();

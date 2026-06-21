@@ -1,4 +1,4 @@
-# Brabbel v5.50 – Wandel-Dialog
+# Brabbel v5.51 – Spielende & Speicherzeit
 
 ## Start
 1. ZIP entpacken.
@@ -493,6 +493,14 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 
 
 
+
+
+## Neu in v5.51
+
+- Wandel-Dialog und Hilfetext erklären jetzt sauber, dass der alte Stein nur in der klassischen Variante in den Beutel zurückwandert.
+- Bei jedem Spielende werden verbleibende Handsteine abgezogen; Punkteschutz kann diesen Abzug verhindern.
+- Rundenbasierte Spiele zeigen vor der letzten Runde den Hinweis „Letzte Runde!“.
+- Manuelle Speicherstände zeigen jetzt Datum und Uhrzeit, so wie der Autosave.
 
 
 ## Neu in v5.50
