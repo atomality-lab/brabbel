@@ -1,4 +1,4 @@
-# Brabbel v5.49 – Bonusstein-Beschriftung
+# Brabbel v5.50 – Wandel-Dialog
 
 ## Start
 1. ZIP entpacken.
@@ -493,6 +493,15 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 
 
 
+
+
+## Neu in v5.50
+
+- Der Bonusstein „Wandeln“ nutzt jetzt einen eigenen Dialog.
+- Handstein und neuer Buchstabe werden im selben Dialog gewählt.
+- Der Bonus wird erst verbraucht, wenn „Wandeln“ bestätigt wird.
+- Abbrechen schließt den Dialog ohne Bonusverlust.
+- Glücksstein-Funktionen gehen beim Wandeln verloren, da ein neuer Wunschbuchstabe entsteht.
 
 ## Neu in v5.49
 

@@ -2020,3 +2020,57 @@ body.infoCollapsed .board.boardLarge .cell {
 .bonusStoneSlot.self {
   border-color: #8b6bb0;
 }
+
+/* Brabbel v5.50: Wandel-Dialog */
+.wideDialog {
+  max-width: min(760px, calc(100vw - 2rem));
+}
+.bonusTransformDialog h3 {
+  margin: 1rem 0 .45rem;
+  font-size: 1rem;
+  color: #36523f;
+}
+.transformRackChoices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .55rem;
+  justify-content: center;
+}
+.transformTileChoice {
+  width: 4.1rem;
+  min-height: 4.1rem;
+  border-radius: 1rem;
+  border: 2px solid rgba(89, 63, 33, .25);
+  background: linear-gradient(145deg, #fff6dc, #f4d997);
+  color: #3d2b13;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 4px 12px rgba(60, 42, 20, .14);
+}
+.transformTileChoice span {
+  font-weight: 950;
+  font-size: 1.45rem;
+  line-height: 1;
+}
+.transformTileChoice small {
+  font-size: .78rem;
+  font-weight: 800;
+  opacity: .72;
+}
+.transformTileChoice.selected,
+.transformLetterChoices button.selected {
+  outline: 4px solid rgba(15, 118, 110, .28);
+  border-color: #0f766e;
+}
+.transformTileChoice:disabled {
+  opacity: .35;
+  box-shadow: none;
+}
+.transformLetterChoices {
+  margin-top: .35rem;
+}
+.transformPreview {
+  text-align: center;
+  font-weight: 800;
+  margin-top: .9rem;
+}

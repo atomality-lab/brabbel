@@ -212,7 +212,11 @@ function resetTurnBonusFlags() {
   state.usedBonusThisTurn = false;
   state.singleSwapActive = false;
   pendingBonusSwapRackIndex = null;
+  pendingBonusTransformSlotIndex = null;
+  pendingBonusTransformRackIndex = null;
+  pendingBonusTransformLetter = "";
 }
+
 function getActivePointBonusValue() {
   if (!isBonusModeBonus()) return 0;
   const def = getBonusDef(state?.activeBonus);
@@ -351,16 +355,32 @@ function activateBonusSlot(slotIndex) {
   const def = getBonusDef(stone);
   if (!def) return;
   if (def.kind === "passive") {
-    message(def.name, `${def.help}\n\nDieser Bonus bleibt im Slot und wird bei Bedarf automatisch verwendet.`);
+    message(def.name, `${def.help}
+
+Dieser Bonus bleibt im Slot und wird bei Bedarf automatisch verwendet.`);
     return;
   }
   if (state.usedBonusThisTurn) { message("Bonus schon verwendet", "Du kannst pro Zug nur einen Bonusstein verwenden."); return; }
-  confirmDialog(def.name, `${def.help}\n\nDiesen Bonus jetzt einsetzen?\nNach dem Aktivieren kann er nicht zurückgelegt werden.`, "Ja, verwenden", () => useBonusSlot(slotIndex), "Nein, zurück");
+  if (def.type === "swap_one") {
+    showBonusTransformDialog(slotIndex);
+    return;
+  }
+  confirmDialog(def.name, `${def.help}
+
+Diesen Bonus jetzt einsetzen?
+Nach dem Aktivieren kann er nicht zurückgelegt werden.`, "Ja, verwenden", () => useBonusSlot(slotIndex), "Nein, zurück");
 }
+
 function handleBonusSlotClick(slotIndex) {
   activateBonusSlot(slotIndex);
 }
 function useBonusSlot(slotIndex) {
+  const pendingStone = state?.bonusSlots?.[slotIndex];
+  const pendingDef = getBonusDef(pendingStone);
+  if (pendingDef?.type === "swap_one") {
+    showBonusTransformDialog(slotIndex);
+    return;
+  }
   const stone = consumeBonusSlot(slotIndex);
   const def = getBonusDef(stone);
   if (!def) { renderGame(); return; }
@@ -371,9 +391,6 @@ function useBonusSlot(slotIndex) {
     message("Bonus aktiviert", `${def.name} ist aktiviert. Schließe jetzt einen gültigen Zug ab, dann wird der Bonus ${actionText}.`);
   } else if (def.type === "swap_all") {
     swapAllRackTilesWithBonus();
-  } else if (def.type === "swap_one") {
-    state.singleSwapActive = true;
-    message("Buchstabenwandler aktiviert", "Tippe jetzt einen Handstein an. Danach wählst du den neuen Buchstaben aus.");
   } else if (def.type === "pvp_deduct5") {
     applyPvpPointEffect(5, false);
   } else if (def.type === "pvp_deduct10") {
@@ -454,6 +471,87 @@ function handleForcedPvpSkipAfterHandoff() {
   const nextName = getCurrentPlayer()?.name || "der andere Spieler";
   showHandoffScreen("Zwangspause", `${skippedName} muss diese Runde aussetzen.`, `${nextName}, du bist wieder am Zug. Bitte Tablet nehmen und mit „Weiter“ bestätigen.`);
   return true;
+}
+
+function getBonusTransformRackLabel(tile) {
+  if (!tile) return "";
+  const letter = getTileLetter(tile);
+  const points = getDisplayedTilePoints(tile);
+  const luck = getTileLucky(tile);
+  return `${letter}${luck ? ` ${luckyShortLabel(luck)}` : ""} · ${points}`;
+}
+function showBonusTransformDialog(slotIndex) {
+  if (!state || !isBonusModeBonus()) return;
+  ensureBonusState();
+  const stone = state.bonusSlots[slotIndex];
+  const def = getBonusDef(stone);
+  if (!def || def.type !== "swap_one") return;
+  pendingBonusTransformSlotIndex = slotIndex;
+  pendingBonusTransformRackIndex = null;
+  pendingBonusTransformLetter = "";
+  renderBonusTransformDialog();
+  $("bonusTransformDialog")?.showModal();
+}
+function renderBonusTransformDialog() {
+  const rackWrap = $("bonusTransformRack");
+  const lettersWrap = $("bonusTransformLetters");
+  const preview = $("bonusTransformPreview");
+  const apply = $("bonusTransformApplyBtn");
+  if (!rackWrap || !lettersWrap || !preview || !apply || !state) return;
+  rackWrap.innerHTML = (state.rack || []).map((tile, idx) => {
+    const filled = !!tile;
+    const selected = idx === pendingBonusTransformRackIndex;
+    const letter = filled ? escapeHtml(getTileLetter(tile)) : "–";
+    const points = filled ? escapeHtml(String(getDisplayedTilePoints(tile))) : "";
+    const title = filled ? escapeHtml(getBonusTransformRackLabel(tile)) : "Leerer Platz";
+    return `<button type="button" class="transformTileChoice ${selected ? "selected" : ""}" data-rack-index="${idx}" ${filled ? "" : "disabled"} title="${title}"><span>${letter}</span>${points ? `<small>${points}</small>` : ""}</button>`;
+  }).join("");
+  rackWrap.querySelectorAll("button[data-rack-index]").forEach(btn => btn.addEventListener("click", () => {
+    pendingBonusTransformRackIndex = Number(btn.dataset.rackIndex);
+    renderBonusTransformDialog();
+  }));
+  lettersWrap.innerHTML = BONUS_LETTER_CHOICES.map(ch => `<button type="button" class="${pendingBonusTransformLetter === ch ? "selected" : ""}" data-letter="${escapeHtml(ch)}">${escapeHtml(ch)}</button>`).join("");
+  lettersWrap.querySelectorAll("button[data-letter]").forEach(btn => btn.addEventListener("click", () => {
+    pendingBonusTransformLetter = normalizeJokerChoice(btn.dataset.letter) || "";
+    renderBonusTransformDialog();
+  }));
+  const oldTile = pendingBonusTransformRackIndex !== null ? state.rack[pendingBonusTransformRackIndex] : "";
+  if (oldTile && pendingBonusTransformLetter) preview.textContent = `${getBonusTransformRackLabel(oldTile)} → ${pendingBonusTransformLetter}`;
+  else if (oldTile) preview.textContent = `${getBonusTransformRackLabel(oldTile)} gewählt. Wähle jetzt den neuen Buchstaben.`;
+  else preview.textContent = "Wähle zuerst einen Handstein und danach den neuen Buchstaben.";
+  apply.disabled = !(oldTile && pendingBonusTransformLetter);
+}
+function confirmBonusTransform() {
+  if (!state) return;
+  const slotIndex = pendingBonusTransformSlotIndex;
+  const rackIndex = pendingBonusTransformRackIndex;
+  const chosen = normalizeJokerChoice(pendingBonusTransformLetter);
+  if (slotIndex === null || rackIndex === null || !chosen) { message("Wandeln", "Bitte wähle zuerst einen Handstein und einen neuen Buchstaben."); return; }
+  ensureBonusState();
+  const stone = normalizeBonusStone(state.bonusSlots[slotIndex]);
+  const def = getBonusDef(stone);
+  if (!def || def.type !== "swap_one") { cancelBonusTransform(); return; }
+  const old = state.rack[rackIndex];
+  if (!old) { message("Wandeln", "Dieser Handplatz ist leer. Bitte wähle einen belegten Handstein."); return; }
+  state.bonusSlots[slotIndex] = null;
+  state.usedBonusThisTurn = true;
+  state.singleSwapActive = false;
+  if (isClassicGame()) state.bag = shuffleArray((state.bag || []).concat([stripTileLuck(old)]));
+  state.rack[rackIndex] = chosen;
+  pendingBonusTransformSlotIndex = null;
+  pendingBonusTransformRackIndex = null;
+  pendingBonusTransformLetter = "";
+  $("bonusTransformDialog")?.close();
+  selectedRackIndex = null;
+  renderGame();
+  saveAutosave();
+}
+function cancelBonusTransform() {
+  pendingBonusTransformSlotIndex = null;
+  pendingBonusTransformRackIndex = null;
+  pendingBonusTransformLetter = "";
+  $("bonusTransformDialog")?.close();
+  renderGame();
 }
 
 function showBonusLetterDialog(rackIndex) {
@@ -652,6 +750,9 @@ let infoPanelCollapsed = storedInfoPanelCollapsed === null ? true : storedInfoPa
 let pendingUnknownWords = [];
 let confirmAction = null;
 let pendingBonusSwapRackIndex = null;
+let pendingBonusTransformSlotIndex = null;
+let pendingBonusTransformRackIndex = null;
+let pendingBonusTransformLetter = "";
 
 const $ = id => document.getElementById(id);
 
@@ -2882,6 +2983,14 @@ window.wwResolveBonusReplacement = function(action) {
 
 window.wwCancelBonusLetterChoice = function() {
   cancelBonusLetterChoice();
+};
+
+window.wwConfirmBonusTransform = function() {
+  confirmBonusTransform();
+};
+
+window.wwCancelBonusTransform = function() {
+  cancelBonusTransform();
 };
 
 init();
