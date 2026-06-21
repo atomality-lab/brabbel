@@ -993,7 +993,14 @@ function continueAfterHandoff() {
   showScreen("screen-game");
   renderGame();
   saveAutosave();
-  if (pendingNotice) setTimeout(() => message("Bonuswirkung", pendingNotice), 0);
+  const lastTurnNotice = consumeLastTurnNotice();
+  if (lastTurnNotice && pendingNotice) {
+    setTimeout(() => message(lastTurnNotice.title, `${lastTurnNotice.text}\n\nBonuswirkung:\n${pendingNotice}`), 0);
+  } else if (lastTurnNotice) {
+    setTimeout(() => message(lastTurnNotice.title, lastTurnNotice.text), 0);
+  } else if (pendingNotice) {
+    setTimeout(() => message("Bonuswirkung", pendingNotice), 0);
+  }
 }
 
 function getSaveDisplayName(gameState) {
@@ -1382,9 +1389,9 @@ function renderTurnStatus() {
   if ($("bagStatusOut")) $("bagStatusOut").textContent = getBagStatusText();
   if ($("currentMoveOut")) $("currentMoveOut").textContent = `${current} Pkt.`;
   const opponent = isDuelGame() ? (state.players || []).find((_, i) => i !== Number(state.currentPlayerIndex || 0)) : null;
-  if ($("opponentScoreLabel")) $("opponentScoreLabel").textContent = opponent ? limitPlayerName(opponent.name || "Gegner", "Gegner") : "Gegner";
+  if ($("opponentScoreLabel")) $("opponentScoreLabel").textContent = "Gegner";
   if ($("opponentScoreOut")) $("opponentScoreOut").textContent = opponent ? `${Number(opponent.score) || 0} Pkt.` : "–";
-  if ($("totalScoreLabel")) $("totalScoreLabel").textContent = limitPlayerName(state.player || localStorage.getItem(K.player) || "Gesamt", "Gesamt");
+  if ($("totalScoreLabel")) $("totalScoreLabel").textContent = "Du";
   if ($("totalScoreOut")) $("totalScoreOut").textContent = `${state.score} Pkt.`;
   if ($("roundStatusOut")) $("roundStatusOut").textContent = getRoundStatusText();
   applyMoveStatus(p);
@@ -2275,6 +2282,11 @@ function withLastTurnNotice(title, text) {
   if (!notice) return {title, text};
   return {title: notice.title, text: `${notice.text}\n\n${title}\n${text}`};
 }
+function showLastTurnNoticePopupIfNeeded() {
+  const notice = consumeLastTurnNotice();
+  if (!notice) return;
+  setTimeout(() => message(notice.title, notice.text), 0);
+}
 function finalizeMove(p) {
   state.score += p.points;
   state.lastMove = {
@@ -2322,7 +2334,7 @@ ${state.player} hat den letzten Zug gespielt.`);
     }
     advanceDuelTurn();
     saveAutosave();
-    if (!checkGameEndAfterTurn()) { const noticeMove = withLastTurnNotice(title, text); showHandoffScreen(noticeMove.title, noticeMove.text); }
+    if (!checkGameEndAfterTurn()) showHandoffScreen(title, text);
     return;
   }
 
@@ -2708,7 +2720,7 @@ ${state.player} hat gepasst. Das Spiel endet jetzt.`);
     }
     advanceDuelTurn();
     saveAutosave();
-    if (!checkGameEndAfterTurn()) { const noticePass = withLastTurnNotice("Runde ausgesetzt", "Gepasst. Die Handsteine bleiben erhalten."); showHandoffScreen(noticePass.title, noticePass.text); }
+    if (!checkGameEndAfterTurn()) showHandoffScreen("Runde ausgesetzt", "Gepasst. Die Handsteine bleiben erhalten.");
   };
   const text = changed
     ? "Du hast in dieser Runde bereits Buchstaben gelegt. Wenn du passt, werden sie zurückgenommen. Deine Handsteine bleiben erhalten. Wirklich passen?"

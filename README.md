@@ -1,4 +1,4 @@
-# Brabbel v5.53 – UI-Nachsteuerung
+# Brabbel v5.54 – UI-Stabilisierung
 
 ## Start
 1. ZIP entpacken.
@@ -493,6 +493,17 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 
 
 
+
+
+## Neu in v5.54
+
+- Bei eingeblendeten Infos wird wieder die stabile Zwei-Spalten-Ansicht genutzt: Das Spielfeld schrumpft sauber neben der Info-Spalte, statt überlappt zu werden.
+- Handsteine und Sortierleiste bleiben innerhalb der Handsteinbox; beide sind rechtsbündig ausgerichtet.
+- Die Aktionsbuttons sind niedriger, damit der Fokus stärker auf der Handsteinbox bleibt.
+- „Zug durchführen“ steht jetzt rechts; „Abbrechen“ ist hellrot hinterlegt.
+- In der Infobox stehen nicht mehr beide Spielernamen: der aktive Spieler heißt dort „Du“, der andere Block zeigt „Gegner“.
+- Die Farbhinterlegung für Aktuell/Gültig/Prüfen/Fehler ist in der neuen Position unter den Bonussteinen wieder aktiv.
+- Im Zu-zweit-Modus erscheint „Achtung, letzter Zug!“ jetzt als echtes Popup nach dem Tabletwechsel vor dem letzten eigenen Zug.
 
 
 ## Neu in v5.53

@@ -2329,3 +2329,136 @@ body.infoCollapsed .controlsSecondaryV55 {
     min-width: 0;
   }
 }
+
+/* Brabbel v5.54: UI-Stabilisierung nach Tablet-Test */
+body:not(.infoCollapsed) .gameLayoutV54 {
+  width: min(1180px, 100%);
+  grid-template-columns: minmax(0, 650px) minmax(300px, 340px) !important;
+  align-items: start;
+}
+body:not(.infoCollapsed) .leftGameColumn,
+body:not(.infoCollapsed) .rightGameColumn {
+  min-width: 0;
+  position: static;
+  z-index: auto;
+}
+body:not(.infoCollapsed) .leftGameColumn .board,
+body:not(.infoCollapsed) .rackPanelV54,
+body:not(.infoCollapsed) .boardUnderRow,
+body:not(.infoCollapsed) .controlsSecondaryV55 {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+.rackPanelV54 {
+  overflow: hidden;
+}
+.rackWithBonus,
+.rackToolRow,
+.rackWithBonus .rack,
+.bonusRackSlots {
+  min-width: 0;
+}
+.rackWithBonus .rack {
+  justify-content: flex-end;
+  overflow: hidden;
+}
+.rackToolRow .rackSortControls {
+  justify-self: end;
+  justify-content: flex-end;
+  width: max-content;
+  max-width: 100%;
+}
+.rackSortControls button {
+  flex: 0 0 auto;
+}
+.rackMoveBox.moveStatus-empty {
+  background: #ffffff !important;
+  border-color: var(--line) !important;
+}
+.rackMoveBox.moveStatus-empty strong,
+.rackMoveBox.moveStatus-empty span {
+  color: var(--muted) !important;
+}
+.rackMoveBox.moveStatus-valid {
+  background: #dcfce3 !important;
+  border-color: #76d48b !important;
+}
+.rackMoveBox.moveStatus-valid strong,
+.rackMoveBox.moveStatus-valid span {
+  color: #116033 !important;
+}
+.rackMoveBox.moveStatus-verify {
+  background: #fff3bf !important;
+  border-color: #e7b93b !important;
+}
+.rackMoveBox.moveStatus-verify strong,
+.rackMoveBox.moveStatus-verify span {
+  color: #735100 !important;
+}
+.rackMoveBox.moveStatus-error {
+  background: #ffe1df !important;
+  border-color: #ee8078 !important;
+}
+.rackMoveBox.moveStatus-error strong,
+.rackMoveBox.moveStatus-error span {
+  color: #8a1f19 !important;
+}
+.controlsPrimaryV518 {
+  grid-template-columns: .95fr .9fr 1.2fr !important;
+}
+.controlsPrimaryV518 button {
+  min-height: 64px !important;
+  padding: .35rem .4rem !important;
+}
+.actionIconOnly .bigActionIcon {
+  min-width: 1.75em;
+  min-height: 1.75em;
+  font-size: 1.25rem;
+}
+.commitActionButton .bigActionIcon {
+  font-size: 1.45rem;
+}
+.actionIconOnly .actionCaption {
+  font-size: .72rem;
+}
+.undoActionButton {
+  background: #ffe8e5 !important;
+  border-color: #eda29b !important;
+  color: #8a1f19 !important;
+}
+.undoActionButton .bigActionIcon {
+  background: #fff7f6;
+  color: #8a1f19;
+}
+.boardUnderRow {
+  grid-template-columns: minmax(220px, .9fr) minmax(330px, 1.1fr) !important;
+}
+.turnStatusPanel div {
+  min-height: 42px;
+}
+@media (min-width: 700px) and (max-width: 1050px) {
+  body:not(.infoCollapsed) .gameLayoutV54 {
+    grid-template-columns: minmax(0, 1fr) minmax(245px, 300px) !important;
+    gap: .45rem;
+  }
+  body:not(.infoCollapsed) .board {
+    gap: 4px;
+    padding: 7px;
+  }
+  body:not(.infoCollapsed) .cell {
+    min-height: 30px;
+  }
+  .controlsPrimaryV518 button {
+    min-height: 58px !important;
+  }
+  .rackToolRow .rackSortControls {
+    width: max-content;
+    max-width: 100%;
+  }
+}
+@media (max-width: 699px) {
+  body:not(.infoCollapsed) .gameLayoutV54 {
+    grid-template-columns: 1fr !important;
+  }
+}
