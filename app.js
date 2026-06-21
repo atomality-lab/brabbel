@@ -746,7 +746,7 @@ let suppressBoardClick = false;
 let suppressRackClick = false;
 let lastTwoFingerCommitAt = 0;
 const storedInfoPanelCollapsed = localStorage.getItem(K.infoPanelCollapsed);
-let infoPanelCollapsed = storedInfoPanelCollapsed === null ? true : storedInfoPanelCollapsed === "true";
+let infoPanelCollapsed = true;
 let pendingUnknownWords = [];
 let confirmAction = null;
 let pendingBonusSwapRackIndex = null;
@@ -1041,7 +1041,7 @@ function init() {
   $("commitMoveBtn").addEventListener("click", commitMove);
   $("passBtn").addEventListener("click", passTurn);
   $("undoBtn").addEventListener("click", undoTurn);
-  $("toggleInfoPanelBtn").addEventListener("click", toggleInfoPanel);
+  $("toggleInfoPanelBtn")?.addEventListener("click", toggleInfoPanel);
   $("board").addEventListener("touchstart", handleTwoFingerBoardTap, {passive:false});
   $("saveGameBtn").onclick = () => showScreen("screen-save");
   $("endGameBtn").onclick = endGame;
@@ -2256,13 +2256,11 @@ function getMovePraiseTitle(points) {
 
 function formatMoveSuccessText(p) {
   const words = (p.words || []).map(w => w.word).join(", ");
-  const main = p.words?.length === 1
-    ? `${words} bringt ${p.points || 0} Pkt.`
-    : `${p.words?.length || 0} Wörter bringen ${p.points || 0} Pkt.`;
+  const moveLabel = p.words?.length === 1 ? words : `${p.words?.length || 0} Wörter: ${words}`;
   const details = formatMoveScoreBreakdown(p.scoreDetails, p.points)
     .replace(/Punkte/g, "Pkt.")
     .replace(/^Du erhältst .*?\n\n/, "");
-  return `${main}\nGesamt: ${state.score} Pkt.\n\n${details}`;
+  return `Zug: ${moveLabel}\nZugpunkte: ${p.points || 0} Pkt.\nGesamtstand: ${state.score} Pkt.\n\nAufschlüsselung:\n${details}`;
 }
 function consumeLastTurnNotice() {
   if (!state || state.endMode !== "rounds") return null;

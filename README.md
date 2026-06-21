@@ -1,4 +1,4 @@
-# Brabbel v5.54 – UI-Stabilisierung
+# Brabbel v5.55 – stabile Spielansicht
 
 ## Start
 1. ZIP entpacken.
@@ -493,6 +493,17 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 
 
 
+
+
+## Neu in v5.55
+
+- Die einblendbare Info-Spalte wurde entfernt, damit die Spielansicht auf dem Tablet stabil bleibt.
+- Der Info-Button unten entfällt; das Spielbrett bleibt groß und sauber zentriert.
+- Der Zugabschluss zeigt die Punkte jetzt klarer mit Zugpunkten, Gesamtstand und Aufschlüsselung.
+- Ausgewählte Handsteine werden nicht mehr mit dickem rotem Rahmen markiert, sondern hellgrün hervorgehoben.
+- Spielfeldfelder werden bei ausgewähltem Handstein nicht mehr zusätzlich markiert.
+- Die Handsteine bleiben beim Ziehen auf dem Brett ruhiger; störende Bewegungs-/Deal-Animationen in der Hand wurden reduziert.
+- Buchstaben auf dem Brett wurden etwas kleiner gesetzt, damit Punktwerte nicht überdeckt werden.
 
 
 ## Neu in v5.54
