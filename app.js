@@ -24,9 +24,9 @@ const BONUS_STONE_DEFS = {
   points5: {type:"points5", symbol:"+5", name:"+5 Punkte", help:"Nach Zugabschluss erhältst du zusätzlich +5 Punkte.", kind:"points", value:5, weight:24},
   points10: {type:"points10", symbol:"+10", name:"+10 Punkte", help:"Nach Zugabschluss erhältst du zusätzlich +10 Punkte.", kind:"points", value:10, weight:17},
   points20: {type:"points20", symbol:"+20", name:"+20 Punkte", help:"Nach Zugabschluss erhältst du zusätzlich +20 Punkte.", kind:"points", value:20, weight:6},
-  double_turn: {type:"double_turn", symbol:"×2", name:"Wertverdoppler", help:"Der Wert deines abgeschlossenen Zugs wird verdoppelt.", kind:"multiplier", value:2, weight:8},
+  double_turn: {type:"double_turn", symbol:"×2", name:"Wertverdoppler", label:"Werte", help:"Der Wert deines abgeschlossenen Zugs wird verdoppelt.", kind:"multiplier", value:2, weight:8},
   swap_all: {type:"swap_all", symbol:"🔄", name:"Alle Steine tauschen", help:"Deine aktuellen Handsteine wandern zurück in den Beutel. Danach ziehst du eine neue Hand. Ist der Beutel leer, wird der Bonus zu +5 Punkten.", kind:"action", weight:18},
-  swap_one: {type:"swap_one", symbol:"🅰️⇄?", name:"Buchstabenwandler", help:"Wähle einen Handstein aus und verwandle ihn in einen Buchstaben deiner Wahl. Der alte Stein wandert zurück in den Beutel.", kind:"action", weight:17},
+  swap_one: {type:"swap_one", symbol:"🅰️⇄?", name:"Buchstabenwandler", label:"Wandeln", help:"Wähle einen Handstein aus und verwandle ihn in einen Buchstaben deiner Wahl. Der alte Stein wandert zurück in den Beutel.", kind:"action", weight:17},
   shield: {type:"shield", symbol:"🛡️0", name:"Punkteschutz", help:"Am Spielende wird dir der Wert deiner übrigen Handsteine einmal nicht abgezogen. Der Bonus wird automatisch verwendet.", kind:"passive", weight:10},
   pvp_deduct5: {type:"pvp_deduct5", symbol:"👤−5", name:"Abzug −5", help:"Dem Gegenspieler werden 5 Punkte abgezogen. Der Punktestand fällt nicht unter 0.", kind:"pvp", target:"opponent", value:5, steal:false, weight:30},
   pvp_deduct10: {type:"pvp_deduct10", symbol:"👤−10", name:"Abzug −10", help:"Dem Gegenspieler werden 10 Punkte abgezogen. Der Punktestand fällt nicht unter 0.", kind:"pvp", target:"opponent", value:10, steal:false, weight:15},
@@ -317,7 +317,7 @@ function renderBonusSlots() {
     btn.dataset.bonusSlot = String(idx);
     btn.title = getBonusSlotTitle(stone);
     if (def) {
-      btn.innerHTML = `<span class="bonusStoneSymbol">${escapeHtml(def.symbol)}</span><span class="bonusStoneName">${escapeHtml(def.name)}</span>`;
+      btn.innerHTML = `<span class="bonusStoneSymbol">${escapeHtml(def.symbol)}</span><span class="bonusStoneName">${escapeHtml(def.label || def.name)}</span>`;
       btn.addEventListener("click", () => handleBonusSlotClick(idx));
     } else {
       btn.innerHTML = `<span class="bonusStoneSymbol">✨</span><span class="bonusStoneName">Bonus</span>`;

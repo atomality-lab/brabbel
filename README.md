@@ -1,4 +1,4 @@
-# Brabbel v5.48 – Bonussystem-Feinschliff
+# Brabbel v5.49 – Bonusstein-Beschriftung
 
 ## Start
 1. ZIP entpacken.
@@ -492,6 +492,14 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 
 
 
+
+
+## Neu in v5.49
+
+- Bonusstein-Beschriftungen gekürzt, damit die Steine besser lesbar bleiben.
+- Buchstabenwandler zeigt auf dem Stein jetzt „Wandeln“.
+- Wertverdoppler zeigt auf dem Stein jetzt „Werte“ neben dem ×2-Symbol.
+- Die ausführlichen Erklärungen bleiben in Dialogen und Hilfetexten erhalten.
 
 ## Neu in v5.48
 
