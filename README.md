@@ -1,4 +1,4 @@
-# Brabbel v5.60 – Legetipps nach dem ersten Zug
+# Brabbel v5.61 – Legetipps bessere Wertung
 
 ## Start
 1. ZIP entpacken.
@@ -496,6 +496,13 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 
 
 
+
+
+## Neu in v5.61
+
+- Legetipps prüfen ab dem zweiten Zug kurze und mittellange Anschlusswörter breiter.
+- Punktestärkere Varianten wie längere Wörter auf Wortbonusfeldern werden zuverlässiger gefunden.
+- Die Vorschläge werden weiterhin nach Punkten sortiert.
 
 ## Neu in v5.60
 

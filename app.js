@@ -3097,8 +3097,9 @@ function toggleInfoPanel() {
   applyInfoPanelSetting();
 }
 const TIP_MAX_RESULTS = 3;
-const TIP_MAX_CANDIDATES = 2600;
-const TIP_MAX_TESTS = 22000;
+const TIP_MAX_CANDIDATES = 9000;
+const TIP_MAX_TESTS = 65000;
+const TIP_ALWAYS_INCLUDE_LENGTH_AFTER_FIRST_MOVE = 5;
 
 function toggleTipDrawer() {
   const drawer = $("tipDrawer");
@@ -3348,8 +3349,10 @@ function findLightMoveSuggestions(limit=TIP_MAX_RESULTS) {
     const entry = cache[i];
     if (entry.tiles.length > getBoardSize()) continue;
     if (!candidateCouldFit(entry.tiles, counts)) continue;
+    const alwaysInclude = !firstMove && entry.tiles.length <= TIP_ALWAYS_INCLUDE_LENGTH_AFTER_FIRST_MOVE;
+    if (!alwaysInclude && scanned >= TIP_MAX_CANDIDATES) break;
     candidates.push(entry);
-    if (++scanned >= TIP_MAX_CANDIDATES) break;
+    if (!alwaysInclude) scanned++;
   }
   const suggestions = [];
   const seen = new Set();
