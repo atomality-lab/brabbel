@@ -3180,7 +3180,7 @@ function getSuggestionWordCache() {
     seen.add(word);
     suggestionWordCache.push({word, tiles});
   }
-  suggestionWordCache.sort((a, b) => b.tiles.length - a.tiles.length || a.word.localeCompare(b.word, "de"));
+  suggestionWordCache.sort((a, b) => a.tiles.length - b.tiles.length || a.word.localeCompare(b.word, "de"));
   return suggestionWordCache;
 }
 
@@ -3339,7 +3339,13 @@ function findLightMoveSuggestions(limit=TIP_MAX_RESULTS) {
   const counts = getSuggestionCounts();
   const candidates = [];
   let scanned = 0;
-  for (const entry of getSuggestionWordCache()) {
+  const cache = getSuggestionWordCache();
+  const firstMove = state.mode !== "letters" && !state.firstSuccessfulMove;
+  const start = firstMove ? cache.length - 1 : 0;
+  const end = firstMove ? -1 : cache.length;
+  const step = firstMove ? -1 : 1;
+  for (let i = start; i !== end; i += step) {
+    const entry = cache[i];
     if (entry.tiles.length > getBoardSize()) continue;
     if (!candidateCouldFit(entry.tiles, counts)) continue;
     candidates.push(entry);
@@ -3348,11 +3354,13 @@ function findLightMoveSuggestions(limit=TIP_MAX_RESULTS) {
   const suggestions = [];
   const seen = new Set();
   let tests = 0;
+  const directions = [[0, 1], [1, 0]];
   for (const entry of candidates) {
-    for (const [dr, dc] of [[0, 1], [1, 0]]) {
-      for (const start of getSuggestionStarts(entry.tiles.length, dr, dc)) {
+    const startsByDirection = directions.map(([dr, dc]) => ({dr, dc, starts: getSuggestionStarts(entry.tiles.length, dr, dc)}));
+    for (const item of startsByDirection) {
+      for (const start of item.starts) {
         if (++tests > TIP_MAX_TESTS) break;
-        const suggestion = trySuggestionPlacement(entry, start, dr, dc);
+        const suggestion = trySuggestionPlacement(entry, start, item.dr, item.dc);
         if (!suggestion) continue;
         const key = `${suggestion.word}:${suggestion.startIndex}:${suggestion.direction}`;
         if (seen.has(key)) continue;

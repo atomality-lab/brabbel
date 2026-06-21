@@ -1,4 +1,4 @@
-# Brabbel v5.59 – Legevorschläge Light
+# Brabbel v5.60 – Legetipps nach dem ersten Zug
 
 ## Start
 1. ZIP entpacken.
@@ -495,6 +495,13 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 
 
 
+
+
+## Neu in v5.60
+
+- Legetipps suchen ab dem zweiten Zug gezielter nach kurzen/anlegbaren Wörtern.
+- Einfache Anschlusswörter wie „DAS“ oder Wörter mit QU werden zuverlässiger gefunden.
+- Startzug-Tipps auf leerem Brett bleiben erhalten.
 
 ## Neu in v5.59
 
