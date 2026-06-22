@@ -195,7 +195,7 @@ function pickWeightedBonusFromPool(pool) {
   return makeBonusStone(usable[0]?.type || "points5");
 }
 function pickBonusStone() {
-  if (isDuelGame() && Math.random() < 0.30) return pickWeightedBonusFromPool(BONUS_PVP_POOL);
+  if (isPvpGame() && Math.random() < 0.30) return pickWeightedBonusFromPool(BONUS_PVP_POOL);
   return pickWeightedBonusFromPool(BONUS_STONE_POOL);
 }
 function ensureBonusState(gameState=state) {
@@ -241,7 +241,7 @@ function hasActivePvpTipBonus() {
 }
 function canUseTipsInCurrentMode() {
   if (!state) return false;
-  if (!isDuelGame()) return true;
+  if (!isPvpGame()) return true;
   return hasActivePvpTipBonus();
 }
 
@@ -826,8 +826,14 @@ function updateMenu() {
 }
 
 
-function isDuelGame(gameState=state) {
+function isPvpGame(gameState=state) {
   return !!(gameState && gameState.playMode === "duel" && Array.isArray(gameState.players));
+}
+function isBotGame(gameState=state) {
+  return !!(gameState && gameState.playMode === "ai" && Array.isArray(gameState.players));
+}
+function isDuelGame(gameState=state) {
+  return !!(gameState && (gameState.playMode === "duel" || gameState.playMode === "ai") && Array.isArray(gameState.players));
 }
 function getCurrentPlayer(gameState=state) {
   if (!isDuelGame(gameState)) return null;
@@ -923,7 +929,9 @@ function prepareNewGameForm() {
   updateNewGameUi(false);
 }
 function describePlayMode(gameState=state) {
-  return isDuelGame(gameState) ? "Zu zweit" : "Einzel";
+  if (isBotGame(gameState)) return "Gegen Dr. Brabbel";
+  if (isPvpGame(gameState)) return "Zu zweit";
+  return "Einzel";
 }
 function describeBonusMode(gameState=state) {
   if (gameState?.bonusMode === BONUS_MODE_FULL) return "Glücks- und Bonussteine";
@@ -1221,10 +1229,11 @@ function startNewGame() {
   const specialLayoutType = mode === "special" ? getSelectedSpecialLayoutType() : "";
   const jokerCount = getSelectedJokerCount(boardSize);
   const bonusMode = $("bonusModeSelect")?.value || BONUS_MODE_NONE;
-  const duelNames = playMode === "duel" ? getDuelPlayerNames() : [];
+  const mainPlayerName = limitPlayerName(localStorage.getItem(K.player) || "Spieler", "Spieler");
+  const duelNames = playMode === "duel" ? getDuelPlayerNames() : (playMode === "ai" ? [mainPlayerName, "Dr. Brabbel"] : []);
   if (playMode === "duel") saveDuelPlayerNames(duelNames);
   state = {
-    player: localStorage.getItem(K.player) || "Spieler",
+    player: mainPlayerName,
     playMode, mode, boardSize, endMode, roundLimit, specialLayoutType, jokerCount, bonusMode,
     score: 0, round: 1, firstSuccessfulMove: false,
     board: [], rack: [], bag: endMode === "classic" ? createClassicBag(boardSize, jokerCount) : null,
@@ -1233,9 +1242,9 @@ function startNewGame() {
     stats: createEmptyStats(),
     bonusSlots: createEmptyBonusSlots(), pendingBonusCount: 0, activeBonus: null, usedBonusThisTurn: false, singleSwapActive: false
   };
-  if (playMode === "duel") {
-    state.players = duelNames.map((name, i) => ensureDuelPlayerShape({name, score: 0, rack: [], stats: createEmptyStats(), lastMove: null, turns: 0, bonusSlots: createEmptyBonusSlots(), pendingBonusCount: 0, activeBonus: null, usedBonusThisTurn: false, singleSwapActive: false, skipNextTurn: false, pendingNotice: ""}, `Spieler ${i + 1}`));
-    state.currentPlayerIndex = Math.floor(Math.random() * state.players.length);
+  if (playMode === "duel" || playMode === "ai") {
+    state.players = duelNames.map((name, i) => ensureDuelPlayerShape({name, score: 0, rack: [], stats: createEmptyStats(), lastMove: null, turns: 0, bonusSlots: createEmptyBonusSlots(), pendingBonusCount: 0, activeBonus: null, usedBonusThisTurn: false, singleSwapActive: false, skipNextTurn: false, pendingNotice: "", bot: playMode === "ai" && i === 1}, `Spieler ${i + 1}`));
+    state.currentPlayerIndex = playMode === "duel" ? Math.floor(Math.random() * state.players.length) : 0;
   }
   if (mode === "special" && specialLayoutType === "random") state.specialLayoutData = createRandomSpecialLayout(boardSize);
   state.board = emptyBoard(boardSize);
@@ -1250,13 +1259,14 @@ function startNewGame() {
     state.rack = drawRack([], true);
   }
   selectedRackIndex = null;
-  if (isDuelGame()) {
+  if (isPvpGame()) {
     const starter = getCurrentPlayer();
     showHandoffScreen("Ausgelost!", `${starter?.name || "Du"}, du darfst beginnen!`, `${starter?.name || "Du"}, nimm dir das Tablet und tippe auf „Weiter“. Dann erscheinen deine Buchstaben.`);
   } else {
     showScreen("screen-game");
     renderGame();
     saveAutosave();
+    if (isBotGame()) setTimeout(() => message("Dr. Brabbel", "Dr. Brabbel ist im Spiel. In dieser Grundversion passt er automatisch, sobald er am Zug ist."), 0);
   }
 }
 function placeSeedLetters(count) {
@@ -2387,6 +2397,30 @@ function showLastTurnNoticePopupIfNeeded() {
   if (!notice) return;
   setTimeout(() => message(notice.title, notice.text), 0);
 }
+function runDrBrabbelPlaceholderTurn(previousTitle="Zug abgeschlossen", previousText="") {
+  if (!isBotGame()) return false;
+  const botName = getCurrentPlayer()?.name || "Dr. Brabbel";
+  state.lastMove = {words: ["Passe"], usedLetters: [], points: 0, date: new Date().toISOString(), botPlaceholder: true};
+  resetTurnBonusFlags();
+  state.duelConsecutivePasses = (Number(state.duelConsecutivePasses) || 0) + 1;
+  noteCurrentDuelTurnFinished();
+  syncActivePlayerToPlayers();
+  if (state.duelConsecutivePasses >= state.players.length) {
+    finishGame(`${botName} passt ebenfalls. Beide Seiten haben direkt nacheinander gepasst.`);
+    return true;
+  }
+  advanceDuelTurn();
+  renderGame();
+  saveAutosave();
+  if (checkGameEndAfterTurn()) return true;
+  const intro = previousText ? `${previousTitle}
+${previousText}
+
+` : "";
+  message("Dr. Brabbel passt", `${intro}${botName} denkt kurz nach. In dieser Grundversion passt er automatisch.`);
+  return true;
+}
+
 function finalizeMove(p) {
   state.score += p.points;
   state.lastMove = {
@@ -2434,6 +2468,10 @@ ${state.player} hat den letzten Zug gespielt.`);
       return;
     }
     advanceDuelTurn();
+    if (isBotGame()) {
+      if (!checkGameEndAfterTurn()) runDrBrabbelPlaceholderTurn(title, text);
+      return;
+    }
     saveAutosave();
     if (!checkGameEndAfterTurn()) showHandoffScreen(title, text);
     return;
@@ -2799,6 +2837,28 @@ function passTurn() {
     return;
   }
 
+  if (isBotGame()) {
+    const text = changed
+      ? "Du hast in dieser Runde bereits Buchstaben gelegt. Wenn du passt, werden sie zurückgenommen. Wirklich passen?"
+      : "Möchtest du diesen Zug aussetzen? Dr. Brabbel passt in dieser Grundversion automatisch danach.";
+    confirmDialog("Passe", text, "Ja, passen", () => {
+      undoTurn(true);
+      state.lastMove = {words: ["Passe"], usedLetters: [], points: 0, date: new Date().toISOString()};
+      resetTurnBonusFlags();
+      selectedRackIndex = null;
+      state.duelConsecutivePasses = (Number(state.duelConsecutivePasses) || 0) + 1;
+      noteCurrentDuelTurnFinished();
+      syncActivePlayerToPlayers();
+      if (state.duelConsecutivePasses >= state.players.length) {
+        finishGame("Du und Dr. Brabbel haben direkt nacheinander gepasst. Das Spiel endet regulär.");
+        return;
+      }
+      advanceDuelTurn();
+      runDrBrabbelPlaceholderTurn("Du hast gepasst", "Dein Zug wurde ausgesetzt.");
+    }, "Nein, zurück");
+    return;
+  }
+
   const doPass = () => {
     undoTurn(true);
     state.lastMove = {words: ["Passe"], usedLetters: [], points: 0, date: new Date().toISOString()};
@@ -3126,20 +3186,24 @@ function closeTipDrawer(clearSuggestions=false) {
 function updateTipButtonState() {
   const btn = $("hintBtn");
   if (!btn) return;
-  const locked = !!(state && isDuelGame() && !hasActivePvpTipBonus());
+  const locked = !!(state && isPvpGame() && !hasActivePvpTipBonus());
   btn.classList.toggle("tipLocked", locked);
   btn.title = locked ? "Im Spiel zu zweit brauchst du den Bonusstein Geistesblitz für Tipps." : "Legetipps anzeigen";
 }
 function toggleTipDrawer() {
   const drawer = $("tipDrawer");
   if (!drawer) return;
-  if (!canUseTipsInCurrentMode()) {
-    message("Tipp gesperrt", "Im Spiel zu zweit brauchst du für Tipps den Bonusstein „Geistesblitz“.");
-    return;
-  }
   if (!drawer.classList.contains("hidden")) {
     closeTipDrawer();
     renderGame();
+    return;
+  }
+  if (state?.board?.some(c => c.isNew || c.isReplacement)) {
+    message("Tipp später", "Du hast bereits Buchstaben gelegt. Nimm die gelegten Buchstaben zurück oder schließe den Zug ab, bevor du einen neuen Tipp suchst.");
+    return;
+  }
+  if (!canUseTipsInCurrentMode()) {
+    message("Tipp gesperrt", "Im Spiel zu zweit brauchst du für Tipps den Bonusstein „Geistesblitz“.");
     return;
   }
   drawer.classList.remove("hidden");

@@ -1,4 +1,4 @@
-# Brabbel v5.65 – Tipp-Schublade schließen
+# Brabbel v5.66 – Dr. Brabbel Grundstruktur
 
 ## Start
 1. ZIP entpacken.
@@ -501,6 +501,16 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 
 
 
+
+
+## Neu in v5.66
+
+- Spielmodus „Spieler vs. Dr. Brabbel“ ist als Grundstruktur aktiv.
+- Dr. Brabbel bekommt eigene Handsteine, eigene Punkte und einen eigenen Zugstatus.
+- In dieser Grundversion passt Dr. Brabbel automatisch, sobald er am Zug ist.
+- Der Modus nutzt noch keine Dr.-Brabbel-Wortsuche und keine Bonusstrategie.
+- Legetipps bleiben gegen Dr. Brabbel für den Menschen frei verfügbar.
+- Wenn bereits Buchstaben gelegt sind, zeigt der Tipp-Button nun einen passenden Hinweis statt „kein Tipp gefunden“.
 
 ## Neu in v5.65
 
