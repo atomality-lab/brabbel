@@ -3114,6 +3114,7 @@ const TIP_MAX_TESTS = 65000;
 const TIP_FIRST_MOVE_MAX_CANDIDATES = 2600;
 const TIP_FIRST_MOVE_MAX_TESTS = 22000;
 const TIP_ALWAYS_INCLUDE_LENGTH_AFTER_FIRST_MOVE = 5;
+const TIP_MAX_REPLACEMENTS = 2;
 
 function updateTipButtonState() {
   const btn = $("hintBtn");
@@ -3159,7 +3160,7 @@ function renderTipSuggestions() {
     cards.innerHTML = lastTipSuggestions.map((tip, idx) => `
       <div class="tipCard suggestionCard">
         <strong>${escapeHtml(tip.word)} · ${tip.points} Pkt.</strong>
-        <span>${escapeHtml(tip.directionLabel)} ab ${escapeHtml(formatBoardCoordinate(tip.startIndex))}${tip.extraWords > 1 ? ` · ${tip.extraWords} Wörter` : ""}${tip.personal ? " · persönlich" : ""}</span>
+        <span>${escapeHtml(tip.directionLabel)} ab ${escapeHtml(formatBoardCoordinate(tip.startIndex))}${tip.extraWords > 1 ? ` · ${tip.extraWords} Wörter` : ""}${tip.replacementCount ? ` · ${tip.replacementCount}× überlegen` : ""}${tip.personal ? " · persönlich" : ""}</span>
         <div class="tipActions">
           <button type="button" onclick="wwShowTipSuggestion(${idx})">Anzeigen</button>
           <button type="button" class="primary" onclick="wwPlaceTipSuggestion(${idx})">Legen</button>
@@ -3359,6 +3360,7 @@ function trySuggestionPlacement(entry, startIndex, dr, dc) {
   const touchedRack = [];
   let overlapsExisting = false;
 
+  let replacementCount = 0;
   for (let i = 0; i < entry.tiles.length; i++) {
     const idx = indexes[i];
     const token = entry.tiles[i];
@@ -3366,14 +3368,25 @@ function trySuggestionPlacement(entry, startIndex, dr, dc) {
     if (!cell) return null;
     if (cell.isNew || cell.isReplacement) return null;
     if (cell.letter) {
-      if (cell.letter !== token) return null;
+      if (cell.letter === token) {
+        overlapsExisting = true;
+        continue;
+      }
+      if (!state.firstSuccessfulMove) return null;
+      if (++replacementCount > TIP_MAX_REPLACEMENTS) return null;
+      const match = findRackTileForSuggestion(token, usedRack);
+      if (!match) return null;
+      usedRack.add(match.rackIndex);
+      placements.push({index: idx, letter: token, rackIndex: match.rackIndex, joker: match.joker, replacement: true, previousLetter: cell.letter, previousJoker: !!cell.joker, previousLucky: cloneLucky(cell.lucky)});
+      touchedIndexes.push(idx);
+      touchedRack.push(match.rackIndex);
       overlapsExisting = true;
       continue;
     }
     const match = findRackTileForSuggestion(token, usedRack);
     if (!match) return null;
     usedRack.add(match.rackIndex);
-    placements.push({index: idx, letter: token, rackIndex: match.rackIndex, joker: match.joker});
+    placements.push({index: idx, letter: token, rackIndex: match.rackIndex, joker: match.joker, replacement: false});
     touchedIndexes.push(idx);
     touchedRack.push(match.rackIndex);
   }
@@ -3384,15 +3397,26 @@ function trySuggestionPlacement(entry, startIndex, dr, dc) {
   for (const p of placements) {
     const tile = state.rack[p.rackIndex];
     const cell = state.board[p.index];
-    cell.letter = p.letter;
-    cell.joker = !!p.joker;
-    cell.lucky = p.joker ? null : getTileLucky(tile);
-    cell.settled = false;
-    cell.isNew = true;
-    cell.isReplacement = false;
-    cell.previousLetter = "";
-    cell.previousJoker = false;
-    cell.previousLucky = null;
+    if (p.replacement) {
+      cell.previousLetter = cell.letter;
+      cell.previousJoker = !!cell.joker;
+      cell.previousLucky = cloneLucky(cell.lucky);
+      cell.letter = p.letter;
+      cell.joker = !!p.joker;
+      cell.lucky = p.joker ? null : getTileLucky(tile);
+      cell.isReplacement = true;
+      cell.isNew = false;
+    } else {
+      cell.letter = p.letter;
+      cell.joker = !!p.joker;
+      cell.lucky = p.joker ? null : getTileLucky(tile);
+      cell.settled = false;
+      cell.isNew = true;
+      cell.isReplacement = false;
+      cell.previousLetter = "";
+      cell.previousJoker = false;
+      cell.previousLucky = null;
+    }
     state.rack[p.rackIndex] = "";
   }
   const result = analyzeMove();
@@ -3407,7 +3431,8 @@ function trySuggestionPlacement(entry, startIndex, dr, dc) {
     directionLabel: dr === 0 ? "waagrecht" : "senkrecht",
     placements: placements.map(p => ({...p})),
     previewIndexes: indexes.slice(),
-    extraWords: result.words.length
+    extraWords: result.words.length,
+    replacementCount: placements.filter(p => p.replacement).length
   } : null;
   restoreSuggestionSnapshot(snapshot);
   return suggestion;
@@ -3511,7 +3536,10 @@ function placeTipSuggestionNow(tip) {
   const resolved = [];
   for (const p of tip.placements || []) {
     const currentCell = state.board[p.index];
-    if (!currentCell || currentCell.letter) { message("Tipp nicht mehr möglich", "Auf dem Brett hat sich etwas verändert. Bitte lasse die Tipps neu suchen."); return; }
+    if (!currentCell) { message("Tipp nicht mehr möglich", "Auf dem Brett hat sich etwas verändert. Bitte lasse die Tipps neu suchen."); return; }
+    if (p.replacement) {
+      if (!currentCell.letter || currentCell.letter !== p.previousLetter || currentCell.isNew || currentCell.isReplacement) { message("Tipp nicht mehr möglich", "Der Buchstabe zum Überlegen hat sich verändert. Bitte lasse die Tipps neu suchen."); return; }
+    } else if (currentCell.letter) { message("Tipp nicht mehr möglich", "Auf dem Brett hat sich etwas verändert. Bitte lasse die Tipps neu suchen."); return; }
     let match = null;
     if (state.rack[p.rackIndex] && !usedRack.has(p.rackIndex) && ((p.joker && isJokerTile(state.rack[p.rackIndex])) || (!p.joker && getTileLetter(state.rack[p.rackIndex]) === p.letter))) {
       match = {rackIndex: p.rackIndex, joker: p.joker};
@@ -3525,15 +3553,26 @@ function placeTipSuggestionNow(tip) {
   for (const p of resolved) {
     const tile = state.rack[p.rackIndex];
     const cell = state.board[p.index];
-    cell.letter = p.letter;
-    cell.joker = !!p.joker;
-    cell.lucky = p.joker ? null : getTileLucky(tile);
-    cell.settled = false;
-    cell.isNew = true;
-    cell.isReplacement = false;
-    cell.previousLetter = "";
-    cell.previousJoker = false;
-    cell.previousLucky = null;
+    if (p.replacement) {
+      cell.previousLetter = cell.letter;
+      cell.previousJoker = !!cell.joker;
+      cell.previousLucky = cloneLucky(cell.lucky);
+      cell.letter = p.letter;
+      cell.joker = !!p.joker;
+      cell.lucky = p.joker ? null : getTileLucky(tile);
+      cell.isReplacement = true;
+      cell.isNew = false;
+    } else {
+      cell.letter = p.letter;
+      cell.joker = !!p.joker;
+      cell.lucky = p.joker ? null : getTileLucky(tile);
+      cell.settled = false;
+      cell.isNew = true;
+      cell.isReplacement = false;
+      cell.previousLetter = "";
+      cell.previousJoker = false;
+      cell.previousLucky = null;
+    }
     state.rack[p.rackIndex] = "";
   }
   selectedRackIndex = null;

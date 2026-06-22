@@ -1,4 +1,4 @@
-# Brabbel v5.63 – Umlaute & persönliche Legetipps
+# Brabbel v5.64 – Legetipps mit Überlegen
 
 ## Start
 1. ZIP entpacken.
@@ -499,6 +499,14 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 
 
 
+
+
+## Neu in v5.64
+
+- Legetipps können ab Runde 2 auch bestehende Buchstaben überlegen.
+- Vorschläge mit Überlegen werden in der Tippkarte markiert.
+- Pro Tipp-Vorschlag werden maximal zwei Buchstaben ersetzt, damit die Suche nachvollziehbar bleibt.
+- „Legen“ setzt auch Überlege-Vorschläge als aktuellen Zug, aber schließt ihn nicht automatisch ab.
 
 ## Neu in v5.63
 
