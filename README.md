@@ -1,4 +1,4 @@
-# Brabbel v5.64 – Legetipps mit Überlegen
+# Brabbel v5.65 – Tipp-Schublade schließen
 
 ## Start
 1. ZIP entpacken.
@@ -500,6 +500,12 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 
 
 
+
+
+## Neu in v5.65
+
+- Die Tipp-Schublade wird nach einem erfolgreich abgeschlossenen Zug automatisch geschlossen.
+- Offene Tipp-Markierungen werden beim Zugabschluss entfernt.
 
 ## Neu in v5.64
 

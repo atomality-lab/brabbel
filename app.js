@@ -2415,6 +2415,7 @@ function finalizeMove(p) {
 ${unlockText}` : "");
   state.rack = drawRackWithLuckAllowed(state.rack, false);
   resetTurnBonusFlags();
+  closeTipDrawer(true);
   selectedRackIndex = null;
 
   if (isDuelGame()) {
@@ -3116,6 +3117,12 @@ const TIP_FIRST_MOVE_MAX_TESTS = 22000;
 const TIP_ALWAYS_INCLUDE_LENGTH_AFTER_FIRST_MOVE = 5;
 const TIP_MAX_REPLACEMENTS = 2;
 
+function closeTipDrawer(clearSuggestions=false) {
+  const drawer = $("tipDrawer");
+  if (drawer) drawer.classList.add("hidden");
+  tipPreviewIndexes = new Set();
+  if (clearSuggestions) lastTipSuggestions = [];
+}
 function updateTipButtonState() {
   const btn = $("hintBtn");
   if (!btn) return;
@@ -3131,8 +3138,7 @@ function toggleTipDrawer() {
     return;
   }
   if (!drawer.classList.contains("hidden")) {
-    drawer.classList.add("hidden");
-    tipPreviewIndexes = new Set();
+    closeTipDrawer();
     renderGame();
     return;
   }
