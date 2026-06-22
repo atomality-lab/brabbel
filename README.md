@@ -1,4 +1,4 @@
-# Brabbel v5.66 – Dr. Brabbel Grundstruktur
+# Brabbel v5.67 – Legetipp-Umlautfilter
 
 ## Start
 1. ZIP entpacken.
@@ -502,6 +502,13 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 
 
 
+
+
+## Neu in v5.67
+
+- Legetipps wandeln AE/OE/UE strenger in Ä/Ö/Ü um.
+- Echte Vokalfolgen wie AUER, FEUER oder NEUER werden nicht mehr zu falschen Umlaut-Vorschlägen.
+- Dadurch werden falsche Tipps wie „SAÜRSTES“ vermieden.
 
 ## Neu in v5.66
 

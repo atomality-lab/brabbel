@@ -3261,6 +3261,11 @@ function pushSuggestionVariant(variants, options) {
   }
   return next;
 }
+function canUseUmlautVariantAt(word, index) {
+  const previous = index > 0 ? word[index - 1] : "";
+  // Echte Vokalfolgen wie AUER/FEUER/NEUER sollen nicht als AÜ/FEÜR/NEÜR vorgeschlagen werden.
+  return !previous || !"AEIOU".includes(previous);
+}
 function wordToSuggestionTileVariants(raw, allowedSpecials={ae:true, oe:true, ue:true, ss:true}) {
   const word = normalizeWord(raw);
   if (!word || word.length < 2 || word.length > 12) return [];
@@ -3271,13 +3276,13 @@ function wordToSuggestionTileVariants(raw, allowedSpecials={ae:true, oe:true, ue
       variants = pushSuggestionVariant(variants, [["QU"]]);
       i++;
     } else if (two === "AE") {
-      variants = pushSuggestionVariant(variants, allowedSpecials.ae ? [["A", "E"], ["Ä"]] : [["A", "E"]]);
+      variants = pushSuggestionVariant(variants, (allowedSpecials.ae && canUseUmlautVariantAt(word, i)) ? [["A", "E"], ["Ä"]] : [["A", "E"]]);
       i++;
     } else if (two === "OE") {
-      variants = pushSuggestionVariant(variants, allowedSpecials.oe ? [["O", "E"], ["Ö"]] : [["O", "E"]]);
+      variants = pushSuggestionVariant(variants, (allowedSpecials.oe && canUseUmlautVariantAt(word, i)) ? [["O", "E"], ["Ö"]] : [["O", "E"]]);
       i++;
     } else if (two === "UE") {
-      variants = pushSuggestionVariant(variants, allowedSpecials.ue ? [["U", "E"], ["Ü"]] : [["U", "E"]]);
+      variants = pushSuggestionVariant(variants, (allowedSpecials.ue && canUseUmlautVariantAt(word, i)) ? [["U", "E"], ["Ü"]] : [["U", "E"]]);
       i++;
     } else if (two === "SS") {
       variants = pushSuggestionVariant(variants, allowedSpecials.ss ? [["S", "S"], ["ß"]] : [["S", "S"]]);
