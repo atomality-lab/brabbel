@@ -768,6 +768,8 @@ let pendingBonusTransformLetter = "";
 let tipPreviewIndexes = new Set();
 let lastTipSuggestions = [];
 let suggestionWordCache = null;
+let drBrabbelTurnInProgress = false;
+let drBrabbelIntroText = "";
 
 const $ = id => document.getElementById(id);
 
@@ -1266,7 +1268,7 @@ function startNewGame() {
     showScreen("screen-game");
     renderGame();
     saveAutosave();
-    if (isBotGame()) setTimeout(() => message("Dr. Brabbel", "Dr. Brabbel ist im Spiel. In dieser Grundversion passt er automatisch, sobald er am Zug ist."), 0);
+    if (isBotGame()) setTimeout(() => message("Dr. Brabbel", "Dr. Brabbel ist im Spiel. Er spielt gemütlich und nimmt nicht immer den besten Zug."), 0);
   }
 }
 function placeSeedLetters(count) {
@@ -2397,10 +2399,34 @@ function showLastTurnNoticePopupIfNeeded() {
   if (!notice) return;
   setTimeout(() => message(notice.title, notice.text), 0);
 }
-function runDrBrabbelPlaceholderTurn(previousTitle="Zug abgeschlossen", previousText="") {
+function chooseDrBrabbelSuggestion(suggestions) {
+  const list = (suggestions || []).filter(Boolean);
+  if (list.length <= 1) return list[0] || null;
+  const roll = Math.random();
+  let pool;
+  if (roll < 0.15) {
+    pool = list.slice(0, Math.min(2, list.length));
+  } else if (roll < 0.80) {
+    pool = list.slice(1, Math.min(6, list.length));
+  } else {
+    pool = list.slice(3, Math.min(10, list.length));
+  }
+  if (!pool.length) pool = list.slice(0, Math.min(6, list.length));
+  return pool[Math.floor(Math.random() * pool.length)] || list[0];
+}
+
+function formatDrBrabbelMoveLine(tip) {
+  if (!tip) return "";
+  const parts = [`${tip.word} für ${tip.points || 0} Pkt.`];
+  if (tip.placedCount) parts.push(`${tip.placedCount} gelegt`);
+  if (tip.replacementCount) parts.push(`${tip.replacementCount}× überlegt`);
+  return parts.join(" · ");
+}
+
+function runDrBrabbelPassTurn(previousTitle="Zug abgeschlossen", previousText="") {
   if (!isBotGame()) return false;
   const botName = getCurrentPlayer()?.name || "Dr. Brabbel";
-  state.lastMove = {words: ["Passe"], usedLetters: [], points: 0, date: new Date().toISOString(), botPlaceholder: true};
+  state.lastMove = {words: ["Passe"], usedLetters: [], points: 0, date: new Date().toISOString(), botPass: true};
   resetTurnBonusFlags();
   state.duelConsecutivePasses = (Number(state.duelConsecutivePasses) || 0) + 1;
   noteCurrentDuelTurnFinished();
@@ -2413,13 +2439,38 @@ function runDrBrabbelPlaceholderTurn(previousTitle="Zug abgeschlossen", previous
   renderGame();
   saveAutosave();
   if (checkGameEndAfterTurn()) return true;
-  const intro = previousText ? `${previousTitle}
-${previousText}
-
-` : "";
-  message("Dr. Brabbel passt", `${intro}${botName} denkt kurz nach. In dieser Grundversion passt er automatisch.`);
+  const intro = previousText ? `${previousTitle}\n${previousText}\n\n` : "";
+  message("Dr. Brabbel passt", `${intro}${botName} findet gerade keinen guten Zug und passt.`);
   return true;
 }
+
+function runDrBrabbelTurn(previousTitle="Zug abgeschlossen", previousText="") {
+  if (!isBotGame() || !getCurrentPlayer()?.bot) return false;
+  const botName = getCurrentPlayer()?.name || "Dr. Brabbel";
+  drBrabbelIntroText = previousText ? `${previousTitle}\n${previousText}\n\n` : "";
+  const suggestions = findLightMoveSuggestions(10);
+  const tip = chooseDrBrabbelSuggestion(suggestions);
+  if (!tip) {
+    drBrabbelIntroText = "";
+    return runDrBrabbelPassTurn(previousTitle, previousText);
+  }
+  placeTipSuggestionNow(tip);
+  const p = analyzeMove();
+  if (getMoveStatus(p) !== "valid") {
+    undoTurn(true);
+    drBrabbelIntroText = "";
+    return runDrBrabbelPassTurn(previousTitle, previousText);
+  }
+  state.pendingDrBrabbelMoveLine = formatDrBrabbelMoveLine(tip);
+  drBrabbelTurnInProgress = true;
+  try {
+    finalizeMove(p);
+  } finally {
+    drBrabbelTurnInProgress = false;
+  }
+  return true;
+}
+
 
 function finalizeMove(p) {
   state.score += p.points;
@@ -2442,11 +2493,17 @@ function finalizeMove(p) {
     cell.previousLucky = null;
   }
   state.firstSuccessfulMove = true;
-  const title = getMovePraiseTitle(p.points);
+  const actingBot = isBotGame() && !!getCurrentPlayer()?.bot;
+  const title = actingBot ? "Dr. Brabbel legt" : getMovePraiseTitle(p.points);
   const unlockText = queueBonusUnlockFromMove(p);
-  const text = formatMoveSuccessText(p) + (unlockText ? `
+  const botMoveLine = actingBot && state.pendingDrBrabbelMoveLine ? `${state.pendingDrBrabbelMoveLine}
+
+` : "";
+  delete state.pendingDrBrabbelMoveLine;
+  const text = (actingBot ? `${drBrabbelIntroText}${botMoveLine}` : "") + formatMoveSuccessText(p) + (unlockText ? `
 
 ${unlockText}` : "");
+  if (actingBot) drBrabbelIntroText = "";
   state.rack = drawRackWithLuckAllowed(state.rack, false);
   resetTurnBonusFlags();
   closeTipDrawer(true);
@@ -2468,11 +2525,16 @@ ${state.player} hat den letzten Zug gespielt.`);
       return;
     }
     advanceDuelTurn();
-    if (isBotGame()) {
-      if (!checkGameEndAfterTurn()) runDrBrabbelPlaceholderTurn(title, text);
+    if (isBotGame() && getCurrentPlayer()?.bot && !drBrabbelTurnInProgress) {
+      if (!checkGameEndAfterTurn()) runDrBrabbelTurn(title, text);
       return;
     }
     saveAutosave();
+    if (isBotGame()) {
+      renderGame();
+      if (!checkGameEndAfterTurn()) message(title, text);
+      return;
+    }
     if (!checkGameEndAfterTurn()) showHandoffScreen(title, text);
     return;
   }
@@ -2840,7 +2902,7 @@ function passTurn() {
   if (isBotGame()) {
     const text = changed
       ? "Du hast in dieser Runde bereits Buchstaben gelegt. Wenn du passt, werden sie zurückgenommen. Wirklich passen?"
-      : "Möchtest du diesen Zug aussetzen? Dr. Brabbel passt in dieser Grundversion automatisch danach.";
+      : "Möchtest du diesen Zug aussetzen? Danach ist Dr. Brabbel am Zug.";
     confirmDialog("Passe", text, "Ja, passen", () => {
       undoTurn(true);
       state.lastMove = {words: ["Passe"], usedLetters: [], points: 0, date: new Date().toISOString()};
@@ -2854,7 +2916,7 @@ function passTurn() {
         return;
       }
       advanceDuelTurn();
-      runDrBrabbelPlaceholderTurn("Du hast gepasst", "Dein Zug wurde ausgesetzt.");
+      runDrBrabbelTurn("Du hast gepasst", "Dein Zug wurde ausgesetzt.");
     }, "Nein, zurück");
     return;
   }

@@ -1,4 +1,4 @@
-# Brabbel v5.68 – Legetipps ausgewogen
+# Brabbel v5.69 – Dr. Brabbel gemütlich
 
 ## Start
 1. ZIP entpacken.
@@ -504,18 +504,13 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 
 
 
-## Neu in v5.68
+## Neu in v5.69
 
-- Legetipps werden ausgewogener bewertet.
-- Vorschläge bevorzugen nicht mehr nur kurze punktstarke Wörter, sondern berücksichtigen auch gelegte Handsteine und Wortlänge.
-- Tippkarten zeigen jetzt zusätzlich, wie viele Steine durch den Vorschlag gelegt werden.
-- Kurze Wörter bleiben möglich, dominieren die Top-Vorschläge aber weniger stark.
-## Neu in v5.66
-
-- Spielmodus „Spieler vs. Dr. Brabbel“ ist als Grundstruktur aktiv.
-- Dr. Brabbel bekommt eigene Handsteine, eigene Punkte und einen eigenen Zugstatus.
-- In dieser Grundversion passt Dr. Brabbel automatisch, sobald er am Zug ist.
-- Der Modus nutzt noch keine Dr.-Brabbel-Wortsuche und keine Bonusstrategie.
+- Dr. Brabbel spielt jetzt im Modus „Spieler vs. Dr. Brabbel“ eigene Züge.
+- Der Doktor nutzt die Legetipp-Logik als Grundlage, wählt aber gemütlich und nicht immer den besten Zug.
+- Wenn Dr. Brabbel keinen passenden Zug findet, passt er.
+- Nach dem Zug zeigt Brabbel an, welches Wort der Doktor gelegt hat und wie viele Punkte es bringt.
+- Bonusstein-Strategie für Dr. Brabbel bleibt weiterhin bewusst außen vor.
 - Legetipps bleiben gegen Dr. Brabbel für den Menschen frei verfügbar.
 - Wenn bereits Buchstaben gelegt sind, zeigt der Tipp-Button nun einen passenden Hinweis statt „kein Tipp gefunden“.
 

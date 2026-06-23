@@ -1,4 +1,4 @@
-const CACHE = "brabbel-v5.68-legetipps-ausgewogen";
+const CACHE = "brabbel-v5.69-dr-brabbel-gemuetlich";
 const FILES = ["./", "./index.html", "./styles.css", "./app.js", "./dictionary.js", "./manifest.json", "./apple-touch-icon.png", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-maskable-512.png"];
 self.addEventListener("install", event => {
   self.skipWaiting();
