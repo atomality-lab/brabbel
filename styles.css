@@ -2744,3 +2744,14 @@ body.infoCollapsed .controlsSecondaryV55 {
   top: -0.45rem;
   font-size: .72rem;
 }
+
+/* Brabbel v5.70: Dr.-Brabbel-Zug kurz hervorheben */
+.cell.botRecent {
+  box-shadow: inset 0 0 0 4px rgba(14, 165, 233, .45), 0 0 0 2px rgba(14, 165, 233, .2) !important;
+  animation: botRecentPulse 1.1s ease-in-out 2;
+}
+
+@keyframes botRecentPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.035); }
+}

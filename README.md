@@ -1,4 +1,4 @@
-# Brabbel v5.69 – Dr. Brabbel gemütlich
+# Brabbel v5.70 – Dr. Brabbel Zugtrennung
 
 ## Start
 1. ZIP entpacken.
@@ -504,15 +504,13 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 
 
 
-## Neu in v5.69
+## Neu in v5.70
 
-- Dr. Brabbel spielt jetzt im Modus „Spieler vs. Dr. Brabbel“ eigene Züge.
-- Der Doktor nutzt die Legetipp-Logik als Grundlage, wählt aber gemütlich und nicht immer den besten Zug.
-- Wenn Dr. Brabbel keinen passenden Zug findet, passt er.
-- Nach dem Zug zeigt Brabbel an, welches Wort der Doktor gelegt hat und wie viele Punkte es bringt.
-- Bonusstein-Strategie für Dr. Brabbel bleibt weiterhin bewusst außen vor.
-- Legetipps bleiben gegen Dr. Brabbel für den Menschen frei verfügbar.
-- Wenn bereits Buchstaben gelegt sind, zeigt der Tipp-Button nun einen passenden Hinweis statt „kein Tipp gefunden“.
+- Dr.-Brabbel-Züge werden jetzt sauber vom menschlichen Zug getrennt.
+- Nach deinem Zug erscheint zuerst nur deine Abschlussmeldung.
+- Danach zeigt Brabbel „Dr. Brabbel denkt nach …“, berechnet den Doktor-Zug und zeigt anschließend seine eigene Abschlussmeldung.
+- Die von Dr. Brabbel gelegten Felder werden kurz hervorgehoben.
+- Künstliche kurze Umlaut-Tipps werden strenger gefiltert, damit aus CAEN nicht mehr CÄN wird.
 
 ## Neu in v5.65
 

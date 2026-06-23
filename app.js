@@ -43,6 +43,7 @@ const LUCK_GREEN_CHANCE = 0.085;
 const LUCK_GOLD_CHANCE = 0.03;
 const LUCK_GREEN_POOL = [{type:"plus", value:1, weight:50}, {type:"plus", value:2, weight:35}, {type:"mult", value:2, weight:15}];
 const LUCK_GOLD_POOL = [{type:"plus", value:5, weight:65}, {type:"mult", value:3, weight:35}];
+const SHORT_UMLAUT_SUGGESTION_ALLOW = new Set(["AERA", "BAER", "FUER", "OEL", "OELE", "TUER", "TUERE", "HOER"]);
 
 const LETTER_WEIGHTS = [
   ["E",174],["N",98],["I",75],["S",73],["R",70],["A",65],["T",61],["H",55],["D",51],["U",41],
@@ -770,6 +771,8 @@ let lastTipSuggestions = [];
 let suggestionWordCache = null;
 let drBrabbelTurnInProgress = false;
 let drBrabbelIntroText = "";
+let pendingDrBrabbelTurn = null;
+let drBrabbelThinkingActive = false;
 
 const $ = id => document.getElementById(id);
 
@@ -1084,6 +1087,12 @@ function init() {
   $("verifyNoBtn").onclick = window.wwRejectUnknownWord;
   $("messageOkBtn").addEventListener("click", () => {
     $("messageDialog").close();
+    if (pendingDrBrabbelTurn && state && isBotGame() && getCurrentPlayer()?.bot) {
+      const pending = pendingDrBrabbelTurn;
+      pendingDrBrabbelTurn = null;
+      showDrBrabbelThinking(pending.title, pending.text);
+      return;
+    }
     if (state && !isDuelGame() && isBonusModeBonus() && (Number(state.pendingBonusCount) || 0) > 0) {
       deliverPendingBonusAtTurnStart(false);
       renderGame();
@@ -1253,6 +1262,7 @@ function startNewGame() {
   if (mode === "letters") {
     placeSeedLetters(clamp(Number($("seedCountInput").value) || 5, 2, 10));
     state.firstSuccessfulMove = true;
+  if (actingBot) state.recentBotMoveIndexes = botMoveIndexes;
   }
   if (isDuelGame()) {
     state.players.forEach(player => { player.rack = drawRack([], true); });
@@ -1448,6 +1458,7 @@ function renderBoard() {
     if (cell.letter) b.classList.add("filled");
     if (cell.letter && cell.settled) b.classList.add("settled");
     if (tipPreviewIndexes && tipPreviewIndexes.has(idx)) b.classList.add("tipPreview");
+    if (state.recentBotMoveIndexes && state.recentBotMoveIndexes.includes(idx)) b.classList.add("botRecent");
     if (selectedRackIndex !== null) b.classList.add("selectable");
 
     if (cell.letter) {
@@ -2399,6 +2410,21 @@ function showLastTurnNoticePopupIfNeeded() {
   if (!notice) return;
   setTimeout(() => message(notice.title, notice.text), 0);
 }
+function showDrBrabbelThinking(previousTitle="Zug abgeschlossen", previousText="") {
+  if (!state || !isBotGame() || !getCurrentPlayer()?.bot) return false;
+  drBrabbelThinkingActive = true;
+  const dialog = $("messageDialog");
+  $("messageTitle").textContent = "Dr. Brabbel denkt nach …";
+  $("messageText").textContent = "Der Doktor sortiert seine Buchstaben und sucht einen gemütlichen Zug.";
+  if (dialog && !dialog.open) dialog.showModal();
+  window.setTimeout(() => {
+    if (dialog && dialog.open) dialog.close();
+    drBrabbelThinkingActive = false;
+    runDrBrabbelTurn(previousTitle, previousText);
+  }, 650);
+  return true;
+}
+
 function chooseDrBrabbelSuggestion(suggestions) {
   const list = (suggestions || []).filter(Boolean);
   if (list.length <= 1) return list[0] || null;
@@ -2462,6 +2488,7 @@ function runDrBrabbelTurn(previousTitle="Zug abgeschlossen", previousText="") {
     return runDrBrabbelPassTurn(previousTitle, previousText);
   }
   state.pendingDrBrabbelMoveLine = formatDrBrabbelMoveLine(tip);
+  state.pendingDrBrabbelMoveIndexes = (tip.previewIndexes || []).slice();
   drBrabbelTurnInProgress = true;
   try {
     finalizeMove(p);
@@ -2499,7 +2526,9 @@ function finalizeMove(p) {
   const botMoveLine = actingBot && state.pendingDrBrabbelMoveLine ? `${state.pendingDrBrabbelMoveLine}
 
 ` : "";
+  const botMoveIndexes = actingBot ? (state.pendingDrBrabbelMoveIndexes || []).slice() : [];
   delete state.pendingDrBrabbelMoveLine;
+  delete state.pendingDrBrabbelMoveIndexes;
   const text = (actingBot ? `${drBrabbelIntroText}${botMoveLine}` : "") + formatMoveSuccessText(p) + (unlockText ? `
 
 ${unlockText}` : "");
@@ -2526,12 +2555,20 @@ ${state.player} hat den letzten Zug gespielt.`);
     }
     advanceDuelTurn();
     if (isBotGame() && getCurrentPlayer()?.bot && !drBrabbelTurnInProgress) {
-      if (!checkGameEndAfterTurn()) runDrBrabbelTurn(title, text);
+      if (!checkGameEndAfterTurn()) {
+        pendingDrBrabbelTurn = {title, text};
+        saveAutosave();
+        renderGame();
+        message(title, text);
+      }
       return;
     }
     saveAutosave();
     if (isBotGame()) {
       renderGame();
+      if (actingBot && state.recentBotMoveIndexes && state.recentBotMoveIndexes.length) {
+        window.setTimeout(() => { if (state) { state.recentBotMoveIndexes = []; renderGame(); } }, 2200);
+      }
       if (!checkGameEndAfterTurn()) message(title, text);
       return;
     }
@@ -3328,6 +3365,15 @@ function canUseUmlautVariantAt(word, index) {
   // Echte Vokalfolgen wie AUER/FEUER/NEUER sollen nicht als AÜ/FEÜR/NEÜR vorgeschlagen werden.
   return !previous || !"AEIOU".includes(previous);
 }
+
+function isArtificialShortUmlautVariant(sourceWord, tiles) {
+  if (!tiles || tiles.length > 3) return false;
+  if (!tiles.some(t => t === "Ä" || t === "Ö" || t === "Ü")) return false;
+  const normalizedDisplay = normalizeWord(tiles.join(""));
+  if (normalizedDisplay !== sourceWord) return false;
+  if (sourceWord.startsWith("AE") || sourceWord.startsWith("OE") || sourceWord.startsWith("UE")) return false;
+  return !SHORT_UMLAUT_SUGGESTION_ALLOW.has(sourceWord);
+}
 function wordToSuggestionTileVariants(raw, allowedSpecials={ae:true, oe:true, ue:true, ss:true}) {
   const word = normalizeWord(raw);
   if (!word || word.length < 2 || word.length > 12) return [];
@@ -3360,6 +3406,7 @@ function wordToSuggestionTileVariants(raw, allowedSpecials={ae:true, oe:true, ue
   for (const tiles of variants) {
     if (tiles.length < 2 || tiles.length > 10) continue;
     if (tiles.some(t => !LETTER_POINTS.hasOwnProperty(t) || t === JOKER_TILE)) continue;
+    if (isArtificialShortUmlautVariant(word, tiles)) continue;
     const key = tiles.join("|");
     if (seen.has(key)) continue;
     seen.add(key);
