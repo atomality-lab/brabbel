@@ -3230,7 +3230,7 @@ function renderTipSuggestions() {
     cards.innerHTML = lastTipSuggestions.map((tip, idx) => `
       <div class="tipCard suggestionCard">
         <strong>${escapeHtml(tip.word)} · ${tip.points} Pkt.</strong>
-        <span>${escapeHtml(tip.directionLabel)} ab ${escapeHtml(formatBoardCoordinate(tip.startIndex))}${tip.extraWords > 1 ? ` · ${tip.extraWords} Wörter` : ""}${tip.replacementCount ? ` · ${tip.replacementCount}× überlegen` : ""}${tip.personal ? " · persönlich" : ""}</span>
+        <span>${escapeHtml(tip.directionLabel)} ab ${escapeHtml(formatBoardCoordinate(tip.startIndex))}${tip.placedCount ? ` · ${tip.placedCount} gelegt` : ""}${tip.extraWords > 1 ? ` · ${tip.extraWords} Wörter` : ""}${tip.replacementCount ? ` · ${tip.replacementCount}× überlegen` : ""}${tip.personal ? " · persönlich" : ""}</span>
         <div class="tipActions">
           <button type="button" onclick="wwShowTipSuggestion(${idx})">Anzeigen</button>
           <button type="button" class="primary" onclick="wwPlaceTipSuggestion(${idx})">Legen</button>
@@ -3507,10 +3507,46 @@ function trySuggestionPlacement(entry, startIndex, dr, dc) {
     placements: placements.map(p => ({...p})),
     previewIndexes: indexes.slice(),
     extraWords: result.words.length,
-    replacementCount: placements.filter(p => p.replacement).length
+    replacementCount: placements.filter(p => p.replacement).length,
+    placedCount: placements.length,
+    placedLetterPoints: calculateSuggestionPlacedLetterPoints(placements),
+    wordLength: entry.tiles.length
   } : null;
+  if (suggestion) suggestion.recommendationScore = calculateSuggestionRecommendationScore(suggestion);
   restoreSuggestionSnapshot(snapshot);
   return suggestion;
+}
+
+
+function calculateSuggestionPlacedLetterPoints(placements) {
+  return (placements || []).reduce((sum, p) => sum + (LETTER_POINTS[p.letter] || 0), 0);
+}
+
+function calculateSuggestionRecommendationScore(suggestion) {
+  if (!suggestion) return 0;
+  const placedCount = Number(suggestion.placedCount) || 0;
+  const placedLetterPoints = Number(suggestion.placedLetterPoints) || 0;
+  const wordLength = Number(suggestion.wordLength) || (suggestion.word || "").length;
+  const extraWords = Number(suggestion.extraWords) || 1;
+  const shortPenalty = wordLength <= 3 ? 7 : (wordLength === 4 ? 2 : 0);
+  const lowPlacementPenalty = placedCount <= 2 && wordLength <= 3 ? 5 : 0;
+  return (Number(suggestion.points) || 0)
+    + placedCount * 5
+    + placedLetterPoints * 0.8
+    + Math.max(0, wordLength - 3) * 2
+    + Math.max(0, extraWords - 1) * 2
+    + (suggestion.personal ? 8 : 0)
+    - shortPenalty
+    - lowPlacementPenalty;
+}
+
+function sortSuggestionsBalanced(a, b) {
+  const scoreDiff = (b.recommendationScore || 0) - (a.recommendationScore || 0);
+  if (Math.abs(scoreDiff) > 0.01) return scoreDiff;
+  return (b.points || 0) - (a.points || 0)
+    || (b.placedCount || 0) - (a.placedCount || 0)
+    || (b.wordLength || 0) - (a.wordLength || 0)
+    || a.word.localeCompare(b.word, "de");
 }
 
 function findLightMoveSuggestions(limit=TIP_MAX_RESULTS) {
@@ -3573,7 +3609,7 @@ function findLightMoveSuggestions(limit=TIP_MAX_RESULTS) {
     if (tests > testLimit) break;
   }
   const sorted = suggestions
-    .sort((a, b) => (b.points + (b.personal ? 8 : 0)) - (a.points + (a.personal ? 8 : 0)) || a.word.length - b.word.length || a.word.localeCompare(b.word, "de"));
+    .sort(sortSuggestionsBalanced);
   const unique = [];
   const usedWords = new Set();
   for (const suggestion of sorted) {

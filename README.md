@@ -1,4 +1,4 @@
-# Brabbel v5.67 – Legetipp-Umlautfilter
+# Brabbel v5.68 – Legetipps ausgewogen
 
 ## Start
 1. ZIP entpacken.
@@ -504,12 +504,12 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 
 
 
-## Neu in v5.67
+## Neu in v5.68
 
-- Legetipps wandeln AE/OE/UE strenger in Ä/Ö/Ü um.
-- Echte Vokalfolgen wie AUER, FEUER oder NEUER werden nicht mehr zu falschen Umlaut-Vorschlägen.
-- Dadurch werden falsche Tipps wie „SAÜRSTES“ vermieden.
-
+- Legetipps werden ausgewogener bewertet.
+- Vorschläge bevorzugen nicht mehr nur kurze punktstarke Wörter, sondern berücksichtigen auch gelegte Handsteine und Wortlänge.
+- Tippkarten zeigen jetzt zusätzlich, wie viele Steine durch den Vorschlag gelegt werden.
+- Kurze Wörter bleiben möglich, dominieren die Top-Vorschläge aber weniger stark.
 ## Neu in v5.66
 
 - Spielmodus „Spieler vs. Dr. Brabbel“ ist als Grundstruktur aktiv.
