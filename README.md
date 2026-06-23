@@ -1,4 +1,4 @@
-# Brabbel v5.70 – Dr. Brabbel Zugtrennung
+# Brabbel v5.71 – Dr. Brabbel Meldungen
 
 ## Start
 1. ZIP entpacken.
@@ -504,14 +504,12 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 
 
 
-## Neu in v5.70
+## Neu in v5.71
 
-- Dr.-Brabbel-Züge werden jetzt sauber vom menschlichen Zug getrennt.
-- Nach deinem Zug erscheint zuerst nur deine Abschlussmeldung.
-- Danach zeigt Brabbel „Dr. Brabbel denkt nach …“, berechnet den Doktor-Zug und zeigt anschließend seine eigene Abschlussmeldung.
-- Die von Dr. Brabbel gelegten Felder werden kurz hervorgehoben.
-- Künstliche kurze Umlaut-Tipps werden strenger gefiltert, damit aus CAEN nicht mehr CÄN wird.
-
+- Die Denk-Meldung von Dr. Brabbel hat keinen OK-Button mehr und verschwindet automatisch.
+- Die Abschlussmeldung des Doktors heißt jetzt „Dr. Brabbel hat gelegt“.
+- Die Meldung nach Dr. Brabbels Zug zeigt nur noch seine eigene Aufschlüsselung, nicht mehr zusätzlich den vorherigen menschlichen Zug.
+- Die von Dr. Brabbel gelegten Felder bleiben nach dem Schließen der Doktor-Meldung noch kurz sichtbar hervorgehoben.
 ## Neu in v5.65
 
 - Die Tipp-Schublade wird nach einem erfolgreich abgeschlossenen Zug automatisch geschlossen.

@@ -811,6 +811,8 @@ function showScreen(id) {
   if (id === "screen-settings") renderSettings();
 }
 function message(t, x) {
+  const ok = $("messageOkBtn");
+  if (ok) { ok.hidden = false; ok.disabled = false; ok.textContent = "OK"; }
   $("messageTitle").textContent = t;
   $("messageText").textContent = x;
   $("messageDialog").showModal();
@@ -1093,6 +1095,9 @@ function init() {
       showDrBrabbelThinking(pending.title, pending.text);
       return;
     }
+    if (state?.recentBotMoveIndexes && state.recentBotMoveIndexes.length) {
+      window.setTimeout(() => { if (state) { state.recentBotMoveIndexes = []; renderGame(); } }, 2600);
+    }
     if (state && !isDuelGame() && isBonusModeBonus() && (Number(state.pendingBonusCount) || 0) > 0) {
       deliverPendingBonusAtTurnStart(false);
       renderGame();
@@ -1262,7 +1267,6 @@ function startNewGame() {
   if (mode === "letters") {
     placeSeedLetters(clamp(Number($("seedCountInput").value) || 5, 2, 10));
     state.firstSuccessfulMove = true;
-  if (actingBot) state.recentBotMoveIndexes = botMoveIndexes;
   }
   if (isDuelGame()) {
     state.players.forEach(player => { player.rack = drawRack([], true); });
@@ -2414,11 +2418,14 @@ function showDrBrabbelThinking(previousTitle="Zug abgeschlossen", previousText="
   if (!state || !isBotGame() || !getCurrentPlayer()?.bot) return false;
   drBrabbelThinkingActive = true;
   const dialog = $("messageDialog");
+  const ok = $("messageOkBtn");
+  if (ok) ok.hidden = true;
   $("messageTitle").textContent = "Dr. Brabbel denkt nach …";
   $("messageText").textContent = "Der Doktor sortiert seine Buchstaben und sucht einen gemütlichen Zug.";
   if (dialog && !dialog.open) dialog.showModal();
   window.setTimeout(() => {
     if (dialog && dialog.open) dialog.close();
+    if (ok) ok.hidden = false;
     drBrabbelThinkingActive = false;
     runDrBrabbelTurn(previousTitle, previousText);
   }, 650);
@@ -2465,15 +2472,14 @@ function runDrBrabbelPassTurn(previousTitle="Zug abgeschlossen", previousText=""
   renderGame();
   saveAutosave();
   if (checkGameEndAfterTurn()) return true;
-  const intro = previousText ? `${previousTitle}\n${previousText}\n\n` : "";
-  message("Dr. Brabbel passt", `${intro}${botName} findet gerade keinen guten Zug und passt.`);
+  message("Dr. Brabbel passt", `${botName} findet gerade keinen guten Zug und passt.`);
   return true;
 }
 
 function runDrBrabbelTurn(previousTitle="Zug abgeschlossen", previousText="") {
   if (!isBotGame() || !getCurrentPlayer()?.bot) return false;
   const botName = getCurrentPlayer()?.name || "Dr. Brabbel";
-  drBrabbelIntroText = previousText ? `${previousTitle}\n${previousText}\n\n` : "";
+  drBrabbelIntroText = "";
   const suggestions = findLightMoveSuggestions(10);
   const tip = chooseDrBrabbelSuggestion(suggestions);
   if (!tip) {
@@ -2521,12 +2527,13 @@ function finalizeMove(p) {
   }
   state.firstSuccessfulMove = true;
   const actingBot = isBotGame() && !!getCurrentPlayer()?.bot;
-  const title = actingBot ? "Dr. Brabbel legt" : getMovePraiseTitle(p.points);
+  const title = actingBot ? "Dr. Brabbel hat gelegt" : getMovePraiseTitle(p.points);
   const unlockText = queueBonusUnlockFromMove(p);
   const botMoveLine = actingBot && state.pendingDrBrabbelMoveLine ? `${state.pendingDrBrabbelMoveLine}
 
 ` : "";
   const botMoveIndexes = actingBot ? (state.pendingDrBrabbelMoveIndexes || []).slice() : [];
+  if (actingBot) state.recentBotMoveIndexes = botMoveIndexes;
   delete state.pendingDrBrabbelMoveLine;
   delete state.pendingDrBrabbelMoveIndexes;
   const text = (actingBot ? `${drBrabbelIntroText}${botMoveLine}` : "") + formatMoveSuccessText(p) + (unlockText ? `
@@ -2566,9 +2573,6 @@ ${state.player} hat den letzten Zug gespielt.`);
     saveAutosave();
     if (isBotGame()) {
       renderGame();
-      if (actingBot && state.recentBotMoveIndexes && state.recentBotMoveIndexes.length) {
-        window.setTimeout(() => { if (state) { state.recentBotMoveIndexes = []; renderGame(); } }, 2200);
-      }
       if (!checkGameEndAfterTurn()) message(title, text);
       return;
     }
