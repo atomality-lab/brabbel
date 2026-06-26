@@ -1,4 +1,4 @@
-# Brabbel v5.71 – Dr. Brabbel Meldungen
+# Brabbel v5.72 – Dr. Brabbel längere Wörter
 
 ## Start
 1. ZIP entpacken.
@@ -504,7 +504,7 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 
 
 
-## Neu in v5.71
+## Neu in v5.72
 
 - Die Denk-Meldung von Dr. Brabbel hat keinen OK-Button mehr und verschwindet automatisch.
 - Die Abschlussmeldung des Doktors heißt jetzt „Dr. Brabbel hat gelegt“.

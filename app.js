@@ -2432,19 +2432,50 @@ function showDrBrabbelThinking(previousTitle="Zug abgeschlossen", previousText="
   return true;
 }
 
+function calculateDrBrabbelCozyChoiceScore(suggestion) {
+  if (!suggestion) return 0;
+  const wordLength = Number(suggestion.wordLength) || String(suggestion.word || "").length;
+  const placedCount = Number(suggestion.placedCount) || 0;
+  const placedLetterPoints = Number(suggestion.placedLetterPoints) || 0;
+  const extraWords = Number(suggestion.extraWords) || 1;
+  const shortPenalty = wordLength <= 2 ? 34 : (wordLength === 3 ? 18 : (wordLength === 4 ? 3 : 0));
+  const longerWordBonus = Math.max(0, wordLength - 3) * 7;
+  const manyTilesBonus = placedCount * 8;
+  return (Number(suggestion.recommendationScore) || 0)
+    + longerWordBonus
+    + manyTilesBonus
+    + placedLetterPoints * 0.4
+    + Math.max(0, extraWords - 1) * 2
+    - shortPenalty;
+}
+
 function chooseDrBrabbelSuggestion(suggestions) {
   const list = (suggestions || []).filter(Boolean);
   if (list.length <= 1) return list[0] || null;
+
+  const cozySorted = list.slice().sort((a, b) => calculateDrBrabbelCozyChoiceScore(b) - calculateDrBrabbelCozyChoiceScore(a));
+  const longEnough = cozySorted.filter(s => (Number(s.wordLength) || String(s.word || "").length) >= 4);
+  const manyPlaced = cozySorted.filter(s => (Number(s.placedCount) || 0) >= 3);
+  const strongShort = list.slice(0, Math.min(3, list.length)).filter(s => (Number(s.points) || 0) >= 24);
+
   const roll = Math.random();
-  let pool;
-  if (roll < 0.15) {
-    pool = list.slice(0, Math.min(2, list.length));
-  } else if (roll < 0.80) {
-    pool = list.slice(1, Math.min(6, list.length));
+  let pool = [];
+  if (roll < 0.10 && strongShort.length) {
+    // Ab und zu darf der Doktor auch einen wirklich starken kurzen Zug nehmen.
+    pool = strongShort;
+  } else if (roll < 0.72 && longEnough.length) {
+    // Meistens wählt der gemütliche Doktor ein längeres Wort aus den guten Vorschlägen.
+    pool = longEnough.slice(0, Math.min(6, longEnough.length));
+  } else if (roll < 0.90 && manyPlaced.length) {
+    // Oft bevorzugt er Züge, mit denen er mehrere Handsteine loswird.
+    pool = manyPlaced.slice(0, Math.min(6, manyPlaced.length));
   } else {
-    pool = list.slice(3, Math.min(10, list.length));
+    // Manchmal nimmt er einen mittleren Zug, damit er nicht zu perfekt wirkt.
+    pool = cozySorted.slice(2, Math.min(10, cozySorted.length));
   }
-  if (!pool.length) pool = list.slice(0, Math.min(6, list.length));
+
+  if (!pool.length) pool = longEnough.slice(0, Math.min(6, longEnough.length));
+  if (!pool.length) pool = cozySorted.slice(0, Math.min(6, cozySorted.length));
   return pool[Math.floor(Math.random() * pool.length)] || list[0];
 }
 
@@ -2480,7 +2511,7 @@ function runDrBrabbelTurn(previousTitle="Zug abgeschlossen", previousText="") {
   if (!isBotGame() || !getCurrentPlayer()?.bot) return false;
   const botName = getCurrentPlayer()?.name || "Dr. Brabbel";
   drBrabbelIntroText = "";
-  const suggestions = findLightMoveSuggestions(10);
+  const suggestions = findLightMoveSuggestions(18);
   const tip = chooseDrBrabbelSuggestion(suggestions);
   if (!tip) {
     drBrabbelIntroText = "";
