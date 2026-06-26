@@ -1,4 +1,4 @@
-# Brabbel v5.73 – Dr. Brabbel Wortlänge
+# Brabbel v5.74 – Dr. Brabbel Längensuche
 
 ## Start
 1. ZIP entpacken.
@@ -674,8 +674,9 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 - Duell-Boni haben das gleiche Streifenprinzip wie normale Bonussteine, aber eine andere Farbwelt.
 - Zwangspause lässt den Gegenspieler beim nächsten Übergabeschirm automatisch aussetzen.
 
-## Neu in v5.73
+## Neu in v5.74
 
-- Dr. Brabbel bevorzugt im gemütlichen Modus nun deutlich stärker längere Wörter und Züge mit mehreren abgelegten Steinen.
-- 2- und 3-Buchstaben-Züge bleiben möglich, werden aber nur noch selten gewählt oder wenn sie wirklich stark punkten.
-- Dr. Brabbel prüft mehr Vorschläge, bevor er seinen gemütlichen Zug auswählt.
+- Dr. Brabbels Suchlogik wurde tiefer angepasst: Er sucht nun gezielt zuerst nach längeren, an vorhandene Buchstaben anschließenden Kandidaten.
+- Die Tipp-Suche für den Doktor prüft mehr Kandidaten und mehr Startpositionen, verbrennt aber weniger Zeit mit kurzen Zufallsanschlüssen.
+- 2- und 3-Buchstaben-Züge sind weiterhin möglich, werden aber nur noch als Notlösung oder bei sehr hoher Punktzahl gewählt.
+- Dr. Brabbel bleibt gemütlich und wählt weiterhin nicht immer den rechnerisch besten Zug.

@@ -2441,17 +2441,17 @@ function calculateDrBrabbelCozyChoiceScore(suggestion) {
   const points = Number(suggestion.points) || 0;
 
   // Dr. Brabbel soll gemütlich, aber nicht kurzatmig spielen:
-  // Länge und abgelegte Steine zählen hier deutlich stärker als reine Maximalpunkte.
-  const shortPenalty = wordLength <= 2 ? 140 : (wordLength === 3 ? 95 : (wordLength === 4 ? 18 : 0));
-  const lengthBonus = wordLength >= 5 ? wordLength * 18 : (wordLength === 4 ? 28 : 0);
-  const placedBonus = placedCount >= 4 ? placedCount * 24 : (placedCount === 3 ? 48 : placedCount * 6);
-  const richMoveBonus = (wordLength >= 5 && placedCount >= 3) ? 35 : 0;
-  const veryShortLowValuePenalty = wordLength <= 3 && points < 30 ? 55 : 0;
+  // Die Auswahl belohnt sichtbar längere Wörter und mehrere gelegte Steine deutlich.
+  const shortPenalty = wordLength <= 2 ? 260 : (wordLength === 3 ? 190 : (wordLength === 4 ? 28 : 0));
+  const lengthBonus = wordLength >= 6 ? wordLength * 32 : (wordLength === 5 ? 130 : (wordLength === 4 ? 58 : 0));
+  const placedBonus = placedCount >= 5 ? placedCount * 38 : (placedCount === 4 ? 145 : (placedCount === 3 ? 65 : placedCount * 4));
+  const richMoveBonus = (wordLength >= 5 && placedCount >= 3) ? 85 : 0;
+  const veryShortLowValuePenalty = wordLength <= 3 && points < 40 ? 105 : 0;
 
   return (Number(suggestion.recommendationScore) || 0)
     + lengthBonus
     + placedBonus
-    + placedLetterPoints * 0.7
+    + placedLetterPoints * 0.9
     + Math.max(0, extraWords - 1) * 3
     + richMoveBonus
     - shortPenalty
@@ -2467,30 +2467,28 @@ function chooseDrBrabbelSuggestion(suggestions) {
   const placed = s => Number(s.placedCount) || 0;
   const points = s => Number(s.points) || 0;
 
-  const richMoves = cozySorted.filter(s => wordLen(s) >= 5 || placed(s) >= 4);
-  const goodMoves = cozySorted.filter(s => wordLen(s) >= 4 || placed(s) >= 3);
+  const longMoves = cozySorted.filter(s => wordLen(s) >= 5 || placed(s) >= 4);
+  const mediumMoves = cozySorted.filter(s => wordLen(s) >= 4 || placed(s) >= 3);
   const notTooShort = cozySorted.filter(s => wordLen(s) >= 4);
-  const strongShort = cozySorted.filter(s => wordLen(s) <= 3 && points(s) >= 32);
+  const strongShort = cozySorted.filter(s => wordLen(s) <= 3 && points(s) >= 45);
 
   const roll = Math.random();
   let pool = [];
-  if (roll < 0.68 && richMoves.length) {
-    // Meistens nimmt der gemütliche Doktor einen Zug, der mehrere Steine loswird
-    // oder ein sichtbar längeres Wort legt.
-    pool = richMoves.slice(0, Math.min(8, richMoves.length));
-  } else if (roll < 0.90 && goodMoves.length) {
-    // Danach kommen solide 4+-Buchstaben-Züge oder Züge mit mindestens 3 neuen Steinen.
-    pool = goodMoves.slice(0, Math.min(8, goodMoves.length));
-  } else if (roll < 0.96 && strongShort.length) {
-    // Kurze Wörter dürfen vorkommen, aber nur gelegentlich und eher wenn sie stark sind.
-    pool = strongShort.slice(0, Math.min(4, strongShort.length));
+  if (roll < 0.82 && longMoves.length) {
+    // Der gemütliche Doktor soll meistens ein sichtbares Wort legen, nicht nur Mini-Anschlüsse.
+    pool = longMoves.slice(0, Math.min(10, longMoves.length));
+  } else if (roll < 0.96 && mediumMoves.length) {
+    // Danach kommen solide mittlere Züge.
+    pool = mediumMoves.slice(0, Math.min(10, mediumMoves.length));
+  } else if (strongShort.length) {
+    // Kurze Wörter dürfen nur noch selten gewinnen und nur, wenn sie wirklich stark sind.
+    pool = strongShort.slice(0, Math.min(3, strongShort.length));
   } else {
-    // Selten nimmt er bewusst einen mittleren, nicht perfekten Zug.
-    pool = notTooShort.slice(2, Math.min(12, notTooShort.length));
+    pool = notTooShort.slice(0, Math.min(10, notTooShort.length));
   }
 
-  if (!pool.length) pool = goodMoves.slice(0, Math.min(8, goodMoves.length));
-  if (!pool.length) pool = notTooShort.slice(0, Math.min(8, notTooShort.length));
+  if (!pool.length) pool = mediumMoves.slice(0, Math.min(10, mediumMoves.length));
+  if (!pool.length) pool = notTooShort.slice(0, Math.min(10, notTooShort.length));
   if (!pool.length) pool = cozySorted.slice(0, Math.min(8, cozySorted.length));
   return pool[Math.floor(Math.random() * pool.length)] || list[0];
 }
@@ -2527,7 +2525,7 @@ function runDrBrabbelTurn(previousTitle="Zug abgeschlossen", previousText="") {
   if (!isBotGame() || !getCurrentPlayer()?.bot) return false;
   const botName = getCurrentPlayer()?.name || "Dr. Brabbel";
   drBrabbelIntroText = "";
-  const suggestions = findLightMoveSuggestions(60);
+  const suggestions = findDrBrabbelMoveSuggestions(90);
   const tip = chooseDrBrabbelSuggestion(suggestions);
   if (!tip) {
     drBrabbelIntroText = "";
@@ -3326,6 +3324,8 @@ const TIP_FIRST_MOVE_MAX_CANDIDATES = 2600;
 const TIP_FIRST_MOVE_MAX_TESTS = 22000;
 const TIP_ALWAYS_INCLUDE_LENGTH_AFTER_FIRST_MOVE = 5;
 const TIP_MAX_REPLACEMENTS = 2;
+const DR_BRABBEL_MAX_CANDIDATES = 26000;
+const DR_BRABBEL_MAX_TESTS = 180000;
 
 function closeTipDrawer(clearSuggestions=false) {
   const drawer = $("tipDrawer");
@@ -3524,29 +3524,54 @@ function candidateCouldFit(tiles, counts) {
   return missing <= counts.jokers;
 }
 
-function getSuggestionStarts(length, dr, dc) {
+function getSuggestionStarts(length, dr, dc, tiles=null, anchoredOnly=false) {
   const size = getBoardSize();
   const starts = [];
+  const seen = new Set();
   const firstMove = state.mode !== "letters" && !state.firstSuccessfulMove;
+  const addStart = (row, col) => {
+    if (row < 0 || col < 0) return;
+    if (dr === 0 && (row >= size || col + length > size)) return;
+    if (dc === 0 && (col >= size || row + length > size)) return;
+    const idx = row * size + col;
+    if (seen.has(idx)) return;
+    seen.add(idx);
+    starts.push(idx);
+  };
   if (firstMove) {
     const center = Math.floor(size / 2);
     if (dr === 0) {
       const row = center;
-      for (let col = center - length + 1; col <= center; col++) {
-        if (col >= 0 && col + length <= size) starts.push(row * size + col);
-      }
+      for (let col = center - length + 1; col <= center; col++) addStart(row, col);
     } else {
       const col = center;
-      for (let row = center - length + 1; row <= center; row++) {
-        if (row >= 0 && row + length <= size) starts.push(row * size + col);
-      }
+      for (let row = center - length + 1; row <= center; row++) addStart(row, col);
     }
     return starts;
   }
+
+  // Für Dr. Brabbel und längere Tipp-Suchen zuerst gezielt Startpositionen prüfen,
+  // bei denen ein Kandidat ein vorhandenes Brettzeichen nutzt. Das verhindert,
+  // dass die Suche tausende kurze Zufallspositionen verbrennt, bevor längere
+  // Wörter überhaupt ausprobiert werden.
+  if (anchoredOnly && tiles && tiles.length) {
+    for (let idx = 0; idx < (state.board || []).length; idx++) {
+      const cellLetter = state.board[idx]?.letter;
+      if (!cellLetter) continue;
+      for (let offset = 0; offset < tiles.length; offset++) {
+        if (tiles[offset] !== cellLetter) continue;
+        const anchorRow = Math.floor(idx / size);
+        const anchorCol = idx % size;
+        addStart(anchorRow - dr * offset, anchorCol - dc * offset);
+      }
+    }
+    if (starts.length) return starts;
+  }
+
   const maxRow = dr === 0 ? size - 1 : size - length;
   const maxCol = dc === 0 ? size - 1 : size - length;
   for (let row = 0; row <= maxRow; row++) {
-    for (let col = 0; col <= maxCol; col++) starts.push(row * size + col);
+    for (let col = 0; col <= maxCol; col++) addStart(row, col);
   }
   return starts;
 }
@@ -3709,11 +3734,14 @@ function sortSuggestionsBalanced(a, b) {
     || a.word.localeCompare(b.word, "de");
 }
 
-function findLightMoveSuggestions(limit=TIP_MAX_RESULTS) {
+function findLightMoveSuggestions(limit=TIP_MAX_RESULTS, options={}) {
   if (!state || !(state.rack || []).some(Boolean)) return [];
   const counts = getSuggestionCounts();
   const candidates = [];
   const candidateKeys = new Set();
+  const preferLongCandidates = !!options.preferLongCandidates;
+  const anchoredStarts = !!options.anchoredStarts;
+  const minCandidateLength = Number(options.minCandidateLength) || 0;
   const addCandidate = entry => {
     const key = `${entry.word}|${entry.tiles.join("|")}`;
     if (candidateKeys.has(key)) return;
@@ -3721,39 +3749,44 @@ function findLightMoveSuggestions(limit=TIP_MAX_RESULTS) {
     candidates.push(entry);
   };
   let scanned = 0;
-  const cache = getSuggestionWordCache();
+  const baseCache = getSuggestionWordCache();
+  const cache = preferLongCandidates
+    ? baseCache.slice().sort((a, b) => (b.personal - a.personal) || (b.baseLength || 0) - (a.baseLength || 0) || a.normalizedWord.localeCompare(b.normalizedWord, "de"))
+    : baseCache;
   const firstMove = state.mode !== "letters" && !state.firstSuccessfulMove;
   for (const baseEntry of cache) {
     if (!baseEntry.personal) continue;
     for (const entry of expandSuggestionEntryForSearch(baseEntry, counts)) {
+      if (entry.tiles.length < minCandidateLength) continue;
       if (entry.tiles.length > getBoardSize()) continue;
       if (!candidateCouldFit(entry.tiles, counts)) continue;
       addCandidate(entry);
     }
   }
-  const candidateLimit = firstMove ? TIP_FIRST_MOVE_MAX_CANDIDATES : TIP_MAX_CANDIDATES;
-  const testLimit = firstMove ? TIP_FIRST_MOVE_MAX_TESTS : TIP_MAX_TESTS;
-  const start = firstMove ? cache.length - 1 : 0;
-  const end = firstMove ? -1 : cache.length;
-  const step = firstMove ? -1 : 1;
+  const candidateLimit = Number(options.candidateLimit) || (firstMove ? TIP_FIRST_MOVE_MAX_CANDIDATES : TIP_MAX_CANDIDATES);
+  const testLimit = Number(options.testLimit) || (firstMove ? TIP_FIRST_MOVE_MAX_TESTS : TIP_MAX_TESTS);
+  const start = firstMove && !preferLongCandidates ? cache.length - 1 : 0;
+  const end = firstMove && !preferLongCandidates ? -1 : cache.length;
+  const step = firstMove && !preferLongCandidates ? -1 : 1;
   for (let i = start; i !== end; i += step) {
     const baseEntry = cache[i];
     for (const entry of expandSuggestionEntryForSearch(baseEntry, counts)) {
+      if (entry.tiles.length < minCandidateLength) continue;
       if (entry.tiles.length > getBoardSize()) continue;
       if (!candidateCouldFit(entry.tiles, counts)) continue;
-      const alwaysInclude = !firstMove && entry.tiles.length <= TIP_ALWAYS_INCLUDE_LENGTH_AFTER_FIRST_MOVE;
+      const alwaysInclude = !firstMove && !preferLongCandidates && entry.tiles.length <= TIP_ALWAYS_INCLUDE_LENGTH_AFTER_FIRST_MOVE;
       if (!alwaysInclude && scanned >= candidateLimit) break;
       addCandidate(entry);
       if (!alwaysInclude && !entry.personal) scanned++;
     }
-    if (scanned >= candidateLimit && (firstMove || (baseEntry.baseLength || 0) > TIP_ALWAYS_INCLUDE_LENGTH_AFTER_FIRST_MOVE)) break;
+    if (scanned >= candidateLimit && (firstMove || preferLongCandidates || (baseEntry.baseLength || 0) > TIP_ALWAYS_INCLUDE_LENGTH_AFTER_FIRST_MOVE)) break;
   }
   const suggestions = [];
   const seen = new Set();
   let tests = 0;
   const directions = [[0, 1], [1, 0]];
   for (const entry of candidates) {
-    const startsByDirection = directions.map(([dr, dc]) => ({dr, dc, starts: getSuggestionStarts(entry.tiles.length, dr, dc)}));
+    const startsByDirection = directions.map(([dr, dc]) => ({dr, dc, starts: getSuggestionStarts(entry.tiles.length, dr, dc, entry.tiles, anchoredStarts)}));
     for (const item of startsByDirection) {
       for (const start of item.starts) {
         if (++tests > testLimit) break;
@@ -3779,6 +3812,34 @@ function findLightMoveSuggestions(limit=TIP_MAX_RESULTS) {
     if (unique.length >= limit) break;
   }
   return unique;
+}
+
+function mergeSuggestionLists(...lists) {
+  const seen = new Set();
+  const merged = [];
+  for (const list of lists) {
+    for (const suggestion of list || []) {
+      const key = `${suggestion.word}:${suggestion.startIndex}:${suggestion.direction}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(suggestion);
+    }
+  }
+  return merged;
+}
+
+function findDrBrabbelMoveSuggestions(limit=90) {
+  const longFocused = findLightMoveSuggestions(limit, {
+    preferLongCandidates: true,
+    anchoredStarts: true,
+    minCandidateLength: 4,
+    candidateLimit: DR_BRABBEL_MAX_CANDIDATES,
+    testLimit: DR_BRABBEL_MAX_TESTS
+  });
+  const fallback = findLightMoveSuggestions(Math.max(30, Math.floor(limit / 2)));
+  return mergeSuggestionLists(longFocused, fallback)
+    .sort((a, b) => calculateDrBrabbelCozyChoiceScore(b) - calculateDrBrabbelCozyChoiceScore(a))
+    .slice(0, limit);
 }
 
 function showTipSuggestion(index) {
