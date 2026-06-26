@@ -785,6 +785,37 @@ function normalizeWord(w) {
 
 const BASE_WORDS = new Set(BASE_WORDS_RAW.map(normalizeWord));
 
+function toRomanNumber(num) {
+  const table = [
+    [1000, "M"], [900, "CM"], [500, "D"], [400, "CD"],
+    [100, "C"], [90, "XC"], [50, "L"], [40, "XL"],
+    [10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]
+  ];
+  let n = Number(num) || 0;
+  let out = "";
+  for (const [value, symbol] of table) {
+    while (n >= value) { out += symbol; n -= value; }
+  }
+  return out;
+}
+const STANDARD_WORD_BLOCKLIST = new Set([
+  ...Array.from({length: 100}, (_, i) => toRomanNumber(i + 1)),
+  "II"
+]);
+const STANDARD_WORD_BLOCKLIST_ALLOW = new Set([
+  // Bewusste Ausnahmen für echte Wörter, die zufällig wie römische Zahlen aussehen könnten.
+  "MIX"
+]);
+function isBlockedStandardWord(raw) {
+  const n = normalizeWord(raw);
+  if (!n || STANDARD_WORD_BLOCKLIST_ALLOW.has(n)) return false;
+  return STANDARD_WORD_BLOCKLIST.has(n);
+}
+function isWordKnownInBaseDictionary(raw) {
+  const n = normalizeWord(raw);
+  return !!n && BASE_WORDS.has(n) && !isBlockedStandardWord(n);
+}
+
 function getPersonalLexicon() {
   try { return new Set(JSON.parse(localStorage.getItem(K.lexicon) || "[]")); }
   catch { return new Set(); }
@@ -792,7 +823,9 @@ function getPersonalLexicon() {
 function savePersonalLexicon(s) { localStorage.setItem(K.lexicon, JSON.stringify([...s].sort())); suggestionWordCache = null; }
 function isWordKnown(w) {
   const n = normalizeWord(w);
-  return BASE_WORDS.has(n) || getPersonalLexicon().has(n);
+  if (!n) return false;
+  if (getPersonalLexicon().has(n)) return true;
+  return isWordKnownInBaseDictionary(n);
 }
 
 function showScreen(id) {
@@ -3472,6 +3505,7 @@ function getSuggestionWordCache() {
   function addSuggestionSource(raw, personal=false) {
     const normalized = normalizeWord(raw);
     if (!normalized || normalized.length < 2 || normalized.length > 12) return;
+    if (!personal && isBlockedStandardWord(normalized)) return;
     const existing = entries.get(normalized);
     if (existing) existing.personal = existing.personal || personal;
     else entries.set(normalized, {word: normalized, normalizedWord: normalized, personal: !!personal, baseLength: normalized.length});

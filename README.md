@@ -1,4 +1,4 @@
-# Brabbel v5.74 – Dr. Brabbel Längensuche
+# Brabbel v5.75 – Wörterfilter für Spielwörter
 
 ## Start
 1. ZIP entpacken.
@@ -674,7 +674,7 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 - Duell-Boni haben das gleiche Streifenprinzip wie normale Bonussteine, aber eine andere Farbwelt.
 - Zwangspause lässt den Gegenspieler beim nächsten Übergabeschirm automatisch aussetzen.
 
-## Neu in v5.74
+## Neu in v5.75
 
 - Dr. Brabbels Suchlogik wurde tiefer angepasst: Er sucht nun gezielt zuerst nach längeren, an vorhandene Buchstaben anschließenden Kandidaten.
 - Die Tipp-Suche für den Doktor prüft mehr Kandidaten und mehr Startpositionen, verbrennt aber weniger Zeit mit kurzen Zufallsanschlüssen.
