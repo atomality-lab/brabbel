@@ -1,4 +1,4 @@
-# Brabbel v5.72 – Dr. Brabbel längere Wörter
+# Brabbel v5.73 – Dr. Brabbel Wortlänge
 
 ## Start
 1. ZIP entpacken.
@@ -506,6 +506,7 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 
 ## Neu in v5.72
 
+
 - Die Denk-Meldung von Dr. Brabbel hat keinen OK-Button mehr und verschwindet automatisch.
 - Die Abschlussmeldung des Doktors heißt jetzt „Dr. Brabbel hat gelegt“.
 - Die Meldung nach Dr. Brabbels Zug zeigt nur noch seine eigene Aufschlüsselung, nicht mehr zusätzlich den vorherigen menschlichen Zug.
@@ -672,3 +673,9 @@ Falls nach einem Update weiterhin alte Fehler auftauchen: Browser-Cache leeren o
 - Duell-Bonussteine erscheinen nur im Zu-zweit-Modus und nur bei aktivem Modus „Glücks- und Bonussteine“.
 - Duell-Boni haben das gleiche Streifenprinzip wie normale Bonussteine, aber eine andere Farbwelt.
 - Zwangspause lässt den Gegenspieler beim nächsten Übergabeschirm automatisch aussetzen.
+
+## Neu in v5.73
+
+- Dr. Brabbel bevorzugt im gemütlichen Modus nun deutlich stärker längere Wörter und Züge mit mehreren abgelegten Steinen.
+- 2- und 3-Buchstaben-Züge bleiben möglich, werden aber nur noch selten gewählt oder wenn sie wirklich stark punkten.
+- Dr. Brabbel prüft mehr Vorschläge, bevor er seinen gemütlichen Zug auswählt.
