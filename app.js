@@ -44,6 +44,36 @@ const LUCK_GOLD_CHANCE = 0.03;
 const LUCK_GREEN_POOL = [{type:"plus", value:1, weight:50}, {type:"plus", value:2, weight:35}, {type:"mult", value:2, weight:15}];
 const LUCK_GOLD_POOL = [{type:"plus", value:5, weight:65}, {type:"mult", value:3, weight:35}];
 const SHORT_UMLAUT_SUGGESTION_ALLOW = new Set(["AERA", "BAER", "FUER", "OEL", "OELE", "TUER", "TUERE", "HOER"]);
+const DR_BRABBEL_DIFFICULTY_DEFAULT = "cozy";
+const DR_BRABBEL_DIFFICULTIES = {
+  cozy: {
+    key: "cozy", label: "Gemütlich",
+    intro: "Dr. Brabbel spielt gemütlich und nimmt nicht immer den besten Zug.",
+    candidateLimit: 26000, testLimit: 180000, resultLimit: 90, minCandidateLength: 4,
+    topChance: 0.18, longChance: 0.82, mediumChance: 0.96,
+    pointsWeight: 0.30, recommendationWeight: 0.70,
+    shortPenalty2: 260, shortPenalty3: 190, shortPenalty4: 28,
+    lengthScale: 32, placedScale: 38, replacementPreference: -8
+  },
+  normal: {
+    key: "normal", label: "Normal",
+    intro: "Dr. Brabbel spielt normal: solider, aber noch nicht perfekt.",
+    candidateLimit: 36000, testLimit: 240000, resultLimit: 120, minCandidateLength: 4,
+    topChance: 0.44, longChance: 0.72, mediumChance: 0.94,
+    pointsWeight: 0.80, recommendationWeight: 0.95,
+    shortPenalty2: 180, shortPenalty3: 95, shortPenalty4: 10,
+    lengthScale: 22, placedScale: 26, replacementPreference: 3
+  },
+  wordwise: {
+    key: "wordwise", label: "Wortgewandt",
+    intro: "Dr. Brabbel spielt wortgewandt und sucht deutlich stärkere Züge.",
+    candidateLimit: 52000, testLimit: 320000, resultLimit: 150, minCandidateLength: 3,
+    topChance: 0.68, longChance: 0.82, mediumChance: 0.97,
+    pointsWeight: 1.25, recommendationWeight: 1.15,
+    shortPenalty2: 120, shortPenalty3: 45, shortPenalty4: 0,
+    lengthScale: 15, placedScale: 22, replacementPreference: 8
+  }
+};
 
 const LETTER_WEIGHTS = [
   ["E",174],["N",98],["I",75],["S",73],["R",70],["A",65],["T",61],["H",55],["D",51],["U",41],
@@ -747,7 +777,8 @@ const K = {
   infoPanelCollapsed: "wortwandler_info_panel_collapsed_v518",
   autosave: "brabbel_autosave_v529",
   duelPlayer1: "wortwandler_duel_player1_v541",
-  duelPlayer2: "wortwandler_duel_player2_v541"
+  duelPlayer2: "wortwandler_duel_player2_v541",
+  drDifficulty: "brabbel_dr_brabbel_difficulty_v576"
 };
 
 let state = null;
@@ -966,12 +997,23 @@ function prepareNewGameForm() {
   const p2 = localStorage.getItem(K.duelPlayer2) || "";
   if ($("duelPlayer1Input")) $("duelPlayer1Input").value = p1;
   if ($("duelPlayer2Input")) $("duelPlayer2Input").value = p2;
+  if ($("drDifficultySelect")) $("drDifficultySelect").value = localStorage.getItem(K.drDifficulty) || DR_BRABBEL_DIFFICULTY_DEFAULT;
   updateNewGameUi(false);
 }
 function describePlayMode(gameState=state) {
   if (isBotGame(gameState)) return "Gegen Dr. Brabbel";
   if (isPvpGame(gameState)) return "Zu zweit";
   return "Einzel";
+}
+function getDrBrabbelDifficulty(gameState=state) {
+  const key = String(gameState?.drBrabbelDifficulty || localStorage.getItem(K.drDifficulty) || DR_BRABBEL_DIFFICULTY_DEFAULT);
+  return DR_BRABBEL_DIFFICULTIES[key] ? key : DR_BRABBEL_DIFFICULTY_DEFAULT;
+}
+function getDrBrabbelDifficultyConfig(gameState=state) {
+  return DR_BRABBEL_DIFFICULTIES[getDrBrabbelDifficulty(gameState)] || DR_BRABBEL_DIFFICULTIES[DR_BRABBEL_DIFFICULTY_DEFAULT];
+}
+function describeDrBrabbelDifficulty(gameState=state) {
+  return getDrBrabbelDifficultyConfig(gameState).label;
 }
 function describeBonusMode(gameState=state) {
   if (gameState?.bonusMode === BONUS_MODE_FULL) return "Glücks- und Bonussteine";
@@ -1076,7 +1118,7 @@ function getSaveScoreText(gameState) {
 }
 function getSaveModeText(gameState) {
   const size = gameState?.boardSize || 9;
-  const mode = gameState?.playMode === "duel" ? "Zu zweit" : "Einzel";
+  const mode = gameState?.playMode === "duel" ? "Zu zweit" : (gameState?.playMode === "ai" ? `Gegen Dr. Brabbel · ${describeDrBrabbelDifficulty(gameState)}` : "Einzel");
   const round = gameState?.round || 1;
   const bonus = gameState?.bonusMode === BONUS_MODE_FULL ? " · Glücks- und Bonussteine" : (gameState?.bonusMode === BONUS_MODE_LUCK ? " · Glückssteine" : "");
   return `${mode} · Runde ${round} · ${size}×${size}${bonus}`;
@@ -1180,6 +1222,7 @@ function updateNewGameUi(resetJokers=false) {
   const playMode = $("playModeSelect")?.value || "solo";
   const gameMode = $("gameModeSelect").value;
   $("duelNamesWrap")?.classList.toggle("hidden", playMode !== "duel");
+  $("drDifficultyWrap")?.classList.toggle("hidden", playMode !== "ai");
   $("seedCountWrap").classList.toggle("hidden", gameMode !== "letters");
   $("specialLayoutWrap").classList.toggle("hidden", gameMode !== "special");
   $("roundLimitWrap").classList.toggle("hidden", $("endModeSelect").value !== "rounds");
@@ -1278,12 +1321,14 @@ function startNewGame() {
   const specialLayoutType = mode === "special" ? getSelectedSpecialLayoutType() : "";
   const jokerCount = getSelectedJokerCount(boardSize);
   const bonusMode = $("bonusModeSelect")?.value || BONUS_MODE_NONE;
+  const drBrabbelDifficulty = playMode === "ai" ? getDrBrabbelDifficulty({drBrabbelDifficulty: $("drDifficultySelect")?.value || localStorage.getItem(K.drDifficulty) || DR_BRABBEL_DIFFICULTY_DEFAULT}) : "";
+  if (playMode === "ai") localStorage.setItem(K.drDifficulty, drBrabbelDifficulty);
   const mainPlayerName = limitPlayerName(localStorage.getItem(K.player) || "Spieler", "Spieler");
   const duelNames = playMode === "duel" ? getDuelPlayerNames() : (playMode === "ai" ? [mainPlayerName, "Dr. Brabbel"] : []);
   if (playMode === "duel") saveDuelPlayerNames(duelNames);
   state = {
     player: mainPlayerName,
-    playMode, mode, boardSize, endMode, roundLimit, specialLayoutType, jokerCount, bonusMode,
+    playMode, mode, boardSize, endMode, roundLimit, specialLayoutType, jokerCount, bonusMode, drBrabbelDifficulty,
     score: 0, round: 1, firstSuccessfulMove: false,
     board: [], rack: [], bag: endMode === "classic" ? createClassicBag(boardSize, jokerCount) : null,
     lastMove: null, startedAt: new Date().toISOString(), savedAt: null,
@@ -1315,7 +1360,7 @@ function startNewGame() {
     showScreen("screen-game");
     renderGame();
     saveAutosave();
-    if (isBotGame()) setTimeout(() => message("Dr. Brabbel", "Dr. Brabbel ist im Spiel. Er spielt gemütlich und nimmt nicht immer den besten Zug."), 0);
+    if (isBotGame()) setTimeout(() => message("Dr. Brabbel", `Dr. Brabbel ist im Spiel. Schwierigkeit: ${describeDrBrabbelDifficulty()}. ${getDrBrabbelDifficultyConfig().intro}`), 0);
   }
 }
 function placeSeedLetters(count) {
@@ -1421,8 +1466,9 @@ function renderGame() {
   ensureBonusState();
   $("scoreOut").textContent = state.score;
   $("roundOut").textContent = state.round;
+  const playModeLabel = isBotGame() ? `${describePlayMode()} · ${describeDrBrabbelDifficulty()}` : describePlayMode();
   $("gameSubtitle").textContent = isDuelGame()
-    ? `${describePlayMode()} · Am Zug: ${state.player} · ${describeBoardMode(state.mode)} · ${getBoardSize()}×${getBoardSize()} · ${describeEndMode()} · ${describeBonusMode()}`
+    ? `${playModeLabel} · Am Zug: ${state.player} · ${describeBoardMode(state.mode)} · ${getBoardSize()}×${getBoardSize()} · ${describeEndMode()} · ${describeBonusMode()}`
     : `${describeBoardMode(state.mode)} · ${getBoardSize()}×${getBoardSize()} · ${describeEndMode()} · ${describeBonusMode()}`;
   renderDuelScorePanel();
   const giveUpAvailable = isGiveUpAvailable();
@@ -2465,27 +2511,29 @@ function showDrBrabbelThinking(previousTitle="Zug abgeschlossen", previousText="
   return true;
 }
 
-function calculateDrBrabbelCozyChoiceScore(suggestion) {
+function calculateDrBrabbelChoiceScore(suggestion, difficultyKey=getDrBrabbelDifficulty()) {
   if (!suggestion) return 0;
+  const cfg = DR_BRABBEL_DIFFICULTIES[difficultyKey] || DR_BRABBEL_DIFFICULTIES[DR_BRABBEL_DIFFICULTY_DEFAULT];
   const wordLength = Number(suggestion.wordLength) || String(suggestion.word || "").length;
   const placedCount = Number(suggestion.placedCount) || 0;
   const placedLetterPoints = Number(suggestion.placedLetterPoints) || 0;
   const extraWords = Number(suggestion.extraWords) || 1;
   const points = Number(suggestion.points) || 0;
+  const replacementCount = Number(suggestion.replacementCount) || 0;
 
-  // Dr. Brabbel soll gemütlich, aber nicht kurzatmig spielen:
-  // Die Auswahl belohnt sichtbar längere Wörter und mehrere gelegte Steine deutlich.
-  const shortPenalty = wordLength <= 2 ? 260 : (wordLength === 3 ? 190 : (wordLength === 4 ? 28 : 0));
-  const lengthBonus = wordLength >= 6 ? wordLength * 32 : (wordLength === 5 ? 130 : (wordLength === 4 ? 58 : 0));
-  const placedBonus = placedCount >= 5 ? placedCount * 38 : (placedCount === 4 ? 145 : (placedCount === 3 ? 65 : placedCount * 4));
-  const richMoveBonus = (wordLength >= 5 && placedCount >= 3) ? 85 : 0;
-  const veryShortLowValuePenalty = wordLength <= 3 && points < 40 ? 105 : 0;
+  const shortPenalty = wordLength <= 2 ? cfg.shortPenalty2 : (wordLength === 3 ? cfg.shortPenalty3 : (wordLength === 4 ? cfg.shortPenalty4 : 0));
+  const lengthBonus = wordLength >= 6 ? wordLength * cfg.lengthScale : (wordLength === 5 ? cfg.lengthScale * 4 : (wordLength === 4 ? cfg.lengthScale * 1.8 : 0));
+  const placedBonus = placedCount >= 5 ? placedCount * cfg.placedScale : (placedCount === 4 ? cfg.placedScale * 3.2 : (placedCount === 3 ? cfg.placedScale * 1.6 : placedCount * 4));
+  const richMoveBonus = (wordLength >= 5 && placedCount >= 3) ? cfg.lengthScale * 2.4 : 0;
+  const veryShortLowValuePenalty = wordLength <= 3 && points < 40 ? Math.max(25, cfg.shortPenalty3 * 0.55) : 0;
 
-  return (Number(suggestion.recommendationScore) || 0)
+  return (Number(suggestion.recommendationScore) || 0) * cfg.recommendationWeight
+    + points * cfg.pointsWeight
     + lengthBonus
     + placedBonus
     + placedLetterPoints * 0.9
-    + Math.max(0, extraWords - 1) * 3
+    + Math.max(0, extraWords - 1) * 4
+    + replacementCount * cfg.replacementPreference
     + richMoveBonus
     - shortPenalty
     - veryShortLowValuePenalty;
@@ -2495,34 +2543,36 @@ function chooseDrBrabbelSuggestion(suggestions) {
   const list = (suggestions || []).filter(Boolean);
   if (list.length <= 1) return list[0] || null;
 
-  const cozySorted = list.slice().sort((a, b) => calculateDrBrabbelCozyChoiceScore(b) - calculateDrBrabbelCozyChoiceScore(a));
+  const difficultyKey = getDrBrabbelDifficulty();
+  const cfg = getDrBrabbelDifficultyConfig();
+  const sorted = list.slice().sort((a, b) => calculateDrBrabbelChoiceScore(b, difficultyKey) - calculateDrBrabbelChoiceScore(a, difficultyKey));
   const wordLen = s => Number(s.wordLength) || String(s.word || "").length;
   const placed = s => Number(s.placedCount) || 0;
   const points = s => Number(s.points) || 0;
 
-  const longMoves = cozySorted.filter(s => wordLen(s) >= 5 || placed(s) >= 4);
-  const mediumMoves = cozySorted.filter(s => wordLen(s) >= 4 || placed(s) >= 3);
-  const notTooShort = cozySorted.filter(s => wordLen(s) >= 4);
-  const strongShort = cozySorted.filter(s => wordLen(s) <= 3 && points(s) >= 45);
+  const topMoves = sorted.slice(0, Math.min(difficultyKey === "wordwise" ? 5 : 4, sorted.length));
+  const longMoves = sorted.filter(s => wordLen(s) >= 5 || placed(s) >= 4);
+  const mediumMoves = sorted.filter(s => wordLen(s) >= 4 || placed(s) >= 3);
+  const notTooShort = sorted.filter(s => wordLen(s) >= 4);
+  const strongShort = sorted.filter(s => wordLen(s) <= 3 && points(s) >= (difficultyKey === "cozy" ? 45 : 35));
 
   const roll = Math.random();
   let pool = [];
-  if (roll < 0.82 && longMoves.length) {
-    // Der gemütliche Doktor soll meistens ein sichtbares Wort legen, nicht nur Mini-Anschlüsse.
-    pool = longMoves.slice(0, Math.min(10, longMoves.length));
-  } else if (roll < 0.96 && mediumMoves.length) {
-    // Danach kommen solide mittlere Züge.
-    pool = mediumMoves.slice(0, Math.min(10, mediumMoves.length));
+  if (roll < cfg.topChance && topMoves.length) {
+    pool = topMoves;
+  } else if (roll < cfg.longChance && longMoves.length) {
+    pool = longMoves.slice(0, Math.min(difficultyKey === "cozy" ? 10 : 14, longMoves.length));
+  } else if (roll < cfg.mediumChance && mediumMoves.length) {
+    pool = mediumMoves.slice(0, Math.min(difficultyKey === "cozy" ? 10 : 14, mediumMoves.length));
   } else if (strongShort.length) {
-    // Kurze Wörter dürfen nur noch selten gewinnen und nur, wenn sie wirklich stark sind.
-    pool = strongShort.slice(0, Math.min(3, strongShort.length));
+    pool = strongShort.slice(0, Math.min(difficultyKey === "wordwise" ? 5 : 3, strongShort.length));
   } else {
-    pool = notTooShort.slice(0, Math.min(10, notTooShort.length));
+    pool = notTooShort.slice(0, Math.min(12, notTooShort.length));
   }
 
-  if (!pool.length) pool = mediumMoves.slice(0, Math.min(10, mediumMoves.length));
-  if (!pool.length) pool = notTooShort.slice(0, Math.min(10, notTooShort.length));
-  if (!pool.length) pool = cozySorted.slice(0, Math.min(8, cozySorted.length));
+  if (!pool.length) pool = mediumMoves.slice(0, Math.min(12, mediumMoves.length));
+  if (!pool.length) pool = notTooShort.slice(0, Math.min(12, notTooShort.length));
+  if (!pool.length) pool = sorted.slice(0, Math.min(8, sorted.length));
   return pool[Math.floor(Math.random() * pool.length)] || list[0];
 }
 
@@ -3863,17 +3913,23 @@ function mergeSuggestionLists(...lists) {
 }
 
 function findDrBrabbelMoveSuggestions(limit=90) {
-  const longFocused = findLightMoveSuggestions(limit, {
+  const cfg = getDrBrabbelDifficultyConfig();
+  const effectiveLimit = Math.max(Number(limit) || 90, Number(cfg.resultLimit) || 90);
+  const longFocused = findLightMoveSuggestions(effectiveLimit, {
     preferLongCandidates: true,
     anchoredStarts: true,
-    minCandidateLength: 4,
-    candidateLimit: DR_BRABBEL_MAX_CANDIDATES,
-    testLimit: DR_BRABBEL_MAX_TESTS
+    minCandidateLength: Number(cfg.minCandidateLength) || 4,
+    candidateLimit: Number(cfg.candidateLimit) || DR_BRABBEL_MAX_CANDIDATES,
+    testLimit: Number(cfg.testLimit) || DR_BRABBEL_MAX_TESTS
   });
-  const fallback = findLightMoveSuggestions(Math.max(30, Math.floor(limit / 2)));
+  const fallback = findLightMoveSuggestions(Math.max(35, Math.floor(effectiveLimit / 2)), {
+    candidateLimit: Math.floor((Number(cfg.candidateLimit) || DR_BRABBEL_MAX_CANDIDATES) * 0.55),
+    testLimit: Math.floor((Number(cfg.testLimit) || DR_BRABBEL_MAX_TESTS) * 0.55)
+  });
+  const difficultyKey = getDrBrabbelDifficulty();
   return mergeSuggestionLists(longFocused, fallback)
-    .sort((a, b) => calculateDrBrabbelCozyChoiceScore(b) - calculateDrBrabbelCozyChoiceScore(a))
-    .slice(0, limit);
+    .sort((a, b) => calculateDrBrabbelChoiceScore(b, difficultyKey) - calculateDrBrabbelChoiceScore(a, difficultyKey))
+    .slice(0, effectiveLimit);
 }
 
 function showTipSuggestion(index) {
